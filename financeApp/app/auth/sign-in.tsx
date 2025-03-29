@@ -1,4 +1,4 @@
-import { View, StyleSheet, TouchableOpacity, ImageBackground, Alert } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, ImageBackground, Alert, KeyboardAvoidingView, ScrollView, Platform } from 'react-native';
 import { useSignIn } from '@clerk/clerk-expo';
 import { Stack, useRouter } from 'expo-router';
 import { ThemedText } from '../../components/ThemedText';
@@ -38,7 +38,11 @@ export default function SignInScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <KeyboardAvoidingView
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      style={{ flex: 1 }}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+    >
       <Stack.Screen options={{ headerShown: false }} />
       
       {/* Background with waves */}
@@ -54,7 +58,12 @@ export default function SignInScreen() {
       </ImageBackground>
       
       {/* Form Container */}
-      <View style={styles.formContainer}>
+      <ScrollView 
+        style={styles.formContainer}
+        contentContainerStyle={{ flexGrow: 1 }}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
         <ThemedText style={styles.title}>Sign In</ThemedText>
         <ThemedText style={styles.subtitle}>
           Let's get started! Create your Impact Invest account to begin your journey toward impactful investing.
@@ -72,6 +81,7 @@ export default function SignInScreen() {
             placeholderTextColor="#999"
             onChangeText={setEmailAddress}
             style={styles.input}
+            keyboardType="email-address"
           />
         </View>
         
@@ -151,12 +161,15 @@ export default function SignInScreen() {
         {/* Sign Up Link */}
         <View style={styles.signUpContainer}>
           <ThemedText style={styles.signUpText}>Don't have an account? </ThemedText>
-          <TouchableOpacity onPress={() => router.push('/auth/sign-up')}>
+          <TouchableOpacity onPress={() => router.replace('/auth/sign-up')}>
             <ThemedText style={styles.signUpLink}>Sign Up</ThemedText>
           </TouchableOpacity>
         </View>
-      </View>
-    </View>
+
+        {/* Add bottom padding for better scrolling experience with keyboard */}
+        <View style={{ paddingBottom: 40 }} />
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -197,6 +210,7 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: 'bold',
     marginBottom: 10,
+    color: '#000000',
   },
   subtitle: {
     color: '#666',

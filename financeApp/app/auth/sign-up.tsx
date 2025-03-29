@@ -1,4 +1,4 @@
-import { View, StyleSheet, Alert, TouchableOpacity, TextInput, SafeAreaView } from 'react-native';
+import { View, StyleSheet, Alert, TouchableOpacity, TextInput, SafeAreaView, KeyboardAvoidingView, ScrollView, Platform } from 'react-native';
 import { useSignUp } from '@clerk/clerk-expo';
 import { Stack, useRouter } from 'expo-router';
 import { ThemedText } from '../../components/ThemedText';
@@ -104,13 +104,22 @@ export default function SignUpScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <KeyboardAvoidingView
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      style={{ flex: 1 }}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+    >
       <Stack.Screen options={{ 
         headerShown: false,
       }} />
       
       {!pendingVerification ? (
-        <>
+        <ScrollView 
+          style={styles.container}
+          contentContainerStyle={{ flexGrow: 1 }}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
           <View style={styles.header}>
             <ThemedText type="title" style={styles.title}>Sign Up for free</ThemedText>
             <ThemedText style={styles.subtitle}>
@@ -132,6 +141,7 @@ export default function SignUpScreen() {
               placeholder="Email address"
               onChangeText={setEmailAddress}
               style={styles.input}
+              keyboardType="email-address"
             />
             
             <TextInput
@@ -163,11 +173,14 @@ export default function SignUpScreen() {
             <View style={styles.loginContainer}>
               <ThemedText style={styles.loginText}>Already have an account? </ThemedText>
               <TouchableOpacity onPress={() => router.replace('/auth/sign-in')}>
-                <ThemedText style={styles.link}>Sign In</ThemedText>
+                <ThemedText style={styles.signInLink}>Sign In</ThemedText>
               </TouchableOpacity>
             </View>
           </View>
-        </>
+          
+          {/* Add bottom padding for better scrolling experience with keyboard */}
+          <View style={{ paddingBottom: 40 }} />
+        </ScrollView>
       ) : (
         <SafeAreaView style={styles.verificationContainer}>
           {/* Header with back button and step indicator */}
@@ -183,7 +196,12 @@ export default function SignUpScreen() {
           </View>
           
           {/* Main content */}
-          <View style={styles.verificationContent}>
+          <ScrollView 
+            style={styles.verificationContent}
+            contentContainerStyle={{ flexGrow: 1 }}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+          >
             <View style={styles.verificationCard}>
               <ThemedText style={styles.verificationTitle}>Email Verification</ThemedText>
               <ThemedText style={styles.verificationDescription}>
@@ -302,11 +320,14 @@ export default function SignUpScreen() {
               >
                 <ThemedText style={styles.continueButtonText}>Continue</ThemedText>
               </TouchableOpacity>
+              
+              {/* Add bottom padding for better scrolling experience with keyboard */}
+              <View style={{ paddingBottom: 40 }} />
             </View>
-          </View>
+          </ScrollView>
         </SafeAreaView>
       )}
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -325,6 +346,7 @@ const styles = StyleSheet.create({
     fontSize: 28,
     fontWeight: 'bold',
     marginBottom: 10,
+    color: '#000000',
   },
   subtitle: {
     fontSize: 16,
@@ -376,6 +398,11 @@ const styles = StyleSheet.create({
   loginText: {
     color: '#6B7280',
     fontSize: 14,
+  },
+  signInLink: {
+    color: '#000000',
+    fontSize: 14,
+    fontWeight: '600',
   },
   
   // Verification Screen Styles - Lighter theme
@@ -508,4 +535,3 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
 });
-

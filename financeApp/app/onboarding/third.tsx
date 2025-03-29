@@ -9,7 +9,7 @@ export default function ThirdOnboarding() {
 
   const finishOnboarding = async () => {
     await AsyncStorage.setItem('hasSeenOnboarding', 'true');
-    router.push('/auth/sign-up');
+    router.replace('/auth/sign-up');
   };
 
   return (
@@ -72,6 +72,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 32,
     fontWeight: 'bold',
+    color: '#000000',
   },
   highlight: {
     fontSize: 32,
