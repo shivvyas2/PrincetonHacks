@@ -46,9 +46,6 @@ function AuthProtection() {
   const [hasSignedUpBefore, setHasSignedUpBefore] = useState<boolean | null>(null);
 
   useEffect(() => {
-    // Reset AsyncStorage for testing - remove in production
-    AsyncStorage.multiRemove(['hasSeenOnboarding', 'hasSignedUpBefore']).catch(console.error);
-    
     // Check if user has gone through onboarding
     AsyncStorage.getItem('hasSeenOnboarding').then((value) => {
       setHasSeenOnboarding(value === 'true');
@@ -77,13 +74,14 @@ function AuthProtection() {
     const inOnboardingGroup = segments[0] === 'onboarding';
     const inTabsGroup = segments[0] === '(tabs)';
 
+    // Only navigate if not already in the correct group
     if (!isSignedIn) {
       // For new users, show onboarding first
       if (!hasSeenOnboarding && !hasSignedUpBefore && !inOnboardingGroup) {
         router.replace('/onboarding');
       } 
       // For returning users or after onboarding, show auth screens
-      else if ((hasSeenOnboarding || hasSignedUpBefore) && !inAuthGroup) {
+      else if ((hasSeenOnboarding || hasSignedUpBefore) && !inAuthGroup && !inOnboardingGroup) {
         router.replace('/auth/sign-in');
       }
     } else if (isSignedIn && !inTabsGroup) {

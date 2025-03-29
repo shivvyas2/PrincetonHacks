@@ -13,7 +13,10 @@ export default function FirstOnboarding() {
           <ThemedText type="title" style={styles.title}>Make an</ThemedText>
           <ThemedText type="title" style={styles.highlight}>Impact</ThemedText>
         </View>
-        <TouchableOpacity onPress={() => router.push('/auth/sign-up')} style={styles.skipButton}>
+        <TouchableOpacity 
+          onPress={() => router.navigate('/auth/sign-up')} 
+          style={styles.skipButton}
+        >
           <ThemedText>Skip</ThemedText>
         </TouchableOpacity>
       </View>
@@ -66,6 +69,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 32,
     fontWeight: 'bold',
+    color: '#000000',
   },
   highlight: {
     fontSize: 32,
