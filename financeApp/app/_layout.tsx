@@ -1,16 +1,101 @@
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { useFonts } from 'expo-font';
-import { Stack } from 'expo-router';
+import { Slot, useRouter, useSegments, Redirect } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import 'react-native-reanimated';
+import { ClerkProvider, useAuth } from '@clerk/clerk-expo';
+import * as SecureStore from 'expo-secure-store';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { useColorScheme } from '@/hooks/useColorScheme';
+
+// Token cache
+const tokenCache = {
+  async getToken(key: string) {
+    try {
+      return SecureStore.getItemAsync(key);
+    } catch (err) {
+      return null;
+    }
+  },
+  async saveToken(key: string, value: string) {
+    try {
+      return SecureStore.setItemAsync(key, value);
+    } catch (err) {
+      return;
+    }
+  },
+};
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
 
+// Auth protection component that handles navigation
+function InitialRoute() {
+  // Always default to the sign-in page for maximum security
+  return <Redirect href="/auth/sign-in" />;
+}
+
+function AuthProtection() {
+  const { isSignedIn, isLoaded } = useAuth();
+  const segments = useSegments();
+  const router = useRouter();
+  const [hasSeenOnboarding, setHasSeenOnboarding] = useState<boolean | null>(null);
+  const [hasSignedUpBefore, setHasSignedUpBefore] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    // Reset AsyncStorage for testing - remove in production
+    AsyncStorage.multiRemove(['hasSeenOnboarding', 'hasSignedUpBefore']).catch(console.error);
+    
+    // Check if user has gone through onboarding
+    AsyncStorage.getItem('hasSeenOnboarding').then((value) => {
+      setHasSeenOnboarding(value === 'true');
+    });
+
+    // Check if the user has signed up before
+    AsyncStorage.getItem('hasSignedUpBefore').then((value) => {
+      setHasSignedUpBefore(value === 'true');
+    });
+  }, []);
+
+  // Save flag when user successfully signs in
+  useEffect(() => {
+    if (isSignedIn) {
+      AsyncStorage.setItem('hasSignedUpBefore', 'true');
+      setHasSignedUpBefore(true);
+    }
+  }, [isSignedIn]);
+
+  useEffect(() => {
+    if (!isLoaded || hasSeenOnboarding === null || hasSignedUpBefore === null) {
+      return;
+    }
+
+    const inAuthGroup = segments[0] === 'auth';
+    const inOnboardingGroup = segments[0] === 'onboarding';
+    const inTabsGroup = segments[0] === '(tabs)';
+
+    if (!isSignedIn) {
+      // For new users, show onboarding first
+      if (!hasSeenOnboarding && !hasSignedUpBefore && !inOnboardingGroup) {
+        router.replace('/onboarding');
+      } 
+      // For returning users or after onboarding, show auth screens
+      else if ((hasSeenOnboarding || hasSignedUpBefore) && !inAuthGroup) {
+        router.replace('/auth/sign-in');
+      }
+    } else if (isSignedIn && !inTabsGroup) {
+      // If signed in but not in tabs, go to home
+      router.replace('/(tabs)');
+    }
+  }, [isLoaded, isSignedIn, hasSeenOnboarding, hasSignedUpBefore, segments, router]);
+
+  return null;
+}
+
+// Root layout that doesn't use auth directly
 export default function RootLayout() {
   const colorScheme = useColorScheme();
   const [loaded] = useFonts({
@@ -28,12 +113,15 @@ export default function RootLayout() {
   }
 
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="+not-found" />
-      </Stack>
-      <StatusBar style="auto" />
-    </ThemeProvider>
+    <ClerkProvider
+      publishableKey={process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY!}
+      tokenCache={tokenCache}
+    >
+      <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+        <Slot />
+        <AuthProtection />
+        <StatusBar style="auto" />
+      </ThemeProvider>
+    </ClerkProvider>
   );
 }
