@@ -319,6 +319,7 @@ const styles = StyleSheet.create({
   header: {
     marginVertical: 40,
     paddingHorizontal: 20,
+    marginTop: 80,
   },
   title: {
     fontSize: 28,
@@ -507,3 +508,4 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
 });
+
