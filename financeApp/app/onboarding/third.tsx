@@ -2,14 +2,13 @@ import { View, StyleSheet, Image } from 'react-native';
 import { useRouter } from 'expo-router';
 import { ThemedText } from '../../components/ThemedText';
 import { TouchableOpacity } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function ThirdOnboarding() {
   const router = useRouter();
 
-  const finishOnboarding = async () => {
-    await AsyncStorage.setItem('hasSeenOnboarding', 'true');
-    router.replace('/auth/sign-up');
+  const finishOnboarding = () => {
+    // Navigate to login screen (sign-in) directly
+    router.replace('/auth/sign-in');
   };
 
   return (
