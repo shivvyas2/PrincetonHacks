@@ -289,22 +289,28 @@ const styles = StyleSheet.create({
     marginHorizontal: 20,
     marginBottom: 20,
     alignItems: 'center',
+    minHeight: 220,
   },
   investmentLabel: {
     color: '#ffffff',
-    fontSize: 18,
+    fontSize: 16,
+    marginBottom: 15,
   },
   investmentAmount: {
     color: '#ffffff',
-    fontSize: 36,
+    fontSize: 32,
     fontWeight: 'bold',
-    marginVertical: 10,
+    marginVertical: 15,
+    textAlign: 'center',
+    width: '100%',
+    paddingHorizontal: 10,
+    lineHeight: 40,
   },
   actionButtons: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     width: '100%',
-    marginTop: 10,
+    marginTop: 25,
   },
   actionButton: {
     backgroundColor: '#322987',
@@ -435,3 +441,5 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
 });
+
+

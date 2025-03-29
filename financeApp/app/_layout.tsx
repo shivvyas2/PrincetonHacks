@@ -83,6 +83,10 @@ export default function RootLayout() {
     }
   }, [loaded]);
 
+  useEffect(() => {
+    console.log('Clerk Key:', process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY);
+  }, []);
+
   if (!loaded) {
     return null;
   }
