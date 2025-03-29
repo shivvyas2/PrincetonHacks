@@ -1,8 +1,9 @@
 import { View, StyleSheet, Image, TextInput, ScrollView, TouchableOpacity, SafeAreaView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '@clerk/clerk-expo';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { ThemedText } from '@/components/ThemedText';
+import { fetchBusinesses, fetchBusinessesByCategory, toggleFavorite } from '@/services/api';
 
 // Category data
 const categories = [
@@ -11,56 +12,81 @@ const categories = [
   { id: 'social', name: 'Social Welfare', icon: 'people-outline' as const, active: false },
 ];
 
-// Business data
+// Business interface
 interface Business {
-  id: number;
+  _id: string;
+  id: string;
   name: string;
   description: string;
-  image: any;
+  image: string;
   amount: number;
   daysLeft: number;
   progress: number;
   favorite: boolean;
+  category: string;
+  __v: number;
+  createdAt: string;
+  updatedAt: string;
 }
-
-const businesses: Business[] = [
-  {
-    id: 1,
-    name: 'Business 1',
-    description: 'Most sleek and innovative electric cars in the world.',
-    image: require('@/assets/images/Image.png'),
-    amount: 7250,
-    daysLeft: 15,
-    progress: 0.7,
-    favorite: false,
-  },
-  {
-    id: 2,
-    name: 'Business 2',
-    description: 'Most sleek and innovative tech in the world.',
-    image: require('@/assets/images/Center Content.png'),
-    amount: 1330,
-    daysLeft: 23,
-    progress: 0.4,
-    favorite: false,
-  },
-];
 
 export default function HomeScreen() {
   const { isSignedIn, sessionId } = useAuth();
-  const [investment, setInvestment] = useState('£12,565,058');
+  const [investment, setInvestment] = useState('$2,400');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
-  const [businessList, setBusinessList] = useState(businesses);
+  const [businessList, setBusinessList] = useState<Business[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   
   // Placeholder user data since useAuth doesn't directly expose user info
   const userName = "Natalie Workman";
   const userAvatar = 'https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y';
 
-  const toggleFavorite = (id: number) => {
-    setBusinessList(businessList.map(business => 
-      business.id === id ? {...business, favorite: !business.favorite} : business
-    ));
+  useEffect(() => {
+    loadBusinesses();
+  }, []);
+
+  useEffect(() => {
+    loadBusinessesByCategory(selectedCategory);
+  }, [selectedCategory]);
+
+  const loadBusinesses = async () => {
+    try {
+      setLoading(true);
+      const businesses = await fetchBusinesses();
+      setBusinessList(businesses);
+    } catch (err) {
+      setError('Failed to load businesses');
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadBusinessesByCategory = async (category: string) => {
+    try {
+      setLoading(true);
+      const businesses = await fetchBusinessesByCategory(category);
+      setBusinessList(businesses);
+    } catch (err) {
+      setError('Failed to load businesses by category');
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleToggleFavorite = async (id: string) => {
+    try {
+      const updatedBusiness = await toggleFavorite(id);
+      if (updatedBusiness) {
+        setBusinessList(businessList.map(business => 
+          business._id === id ? updatedBusiness : business
+        ));
+      }
+    } catch (err) {
+      console.error('Failed to toggle favorite:', err);
+    }
   };
 
   return (
@@ -102,18 +128,6 @@ export default function HomeScreen() {
         <View style={styles.investmentCard}>
           <ThemedText style={styles.investmentLabel}>Your Investment</ThemedText>
           <ThemedText style={styles.investmentAmount}>{investment}</ThemedText>
-          
-          <View style={styles.actionButtons}>
-            <TouchableOpacity style={styles.actionButton}>
-              <Ionicons name="add-circle-outline" size={24} color="#fff" />
-              <ThemedText style={styles.actionButtonText}>Top Up</ThemedText>
-            </TouchableOpacity>
-            
-            <TouchableOpacity style={styles.actionButton}>
-              <Ionicons name="arrow-down-circle-outline" size={24} color="#fff" />
-              <ThemedText style={styles.actionButtonText}>Withdraw</ThemedText>
-            </TouchableOpacity>
-          </View>
         </View>
 
         {/* Discover Section */}
@@ -161,49 +175,55 @@ export default function HomeScreen() {
 
           {/* Business Cards */}
           <View style={styles.businessCards}>
-            {businessList.map((business) => (
-              <View key={business.id} style={styles.businessCard}>
-                <View style={styles.businessImageContainer}>
-                  <Image 
-                    source={business.image} 
-                    style={styles.businessImage} 
-                    resizeMode="cover"
-                  />
-                  <TouchableOpacity 
-                    style={styles.favoriteButton}
-                    onPress={() => toggleFavorite(business.id)}
-                  >
-                    <Ionicons 
-                      name={business.favorite ? "heart" : "heart-outline"} 
-                      size={20} 
-                      color={business.favorite ? "#f00" : "#fff"} 
+            {loading ? (
+              <ThemedText style={styles.loadingText}>Loading...</ThemedText>
+            ) : error ? (
+              <ThemedText style={styles.errorText}>{error}</ThemedText>
+            ) : (
+              businessList.map((business) => (
+                <View key={business._id} style={styles.businessCard}>
+                  <View style={styles.businessImageContainer}>
+                    <Image 
+                      source={{ uri: business.image }}
+                      style={styles.businessImage} 
+                      resizeMode="cover"
                     />
-                  </TouchableOpacity>
-                </View>
-                
-                <View style={styles.businessInfo}>
-                  <ThemedText style={styles.businessName}>{business.name}</ThemedText>
-                  <ThemedText style={styles.businessDescription}>{business.description}</ThemedText>
-                </View>
-                
-                <View style={styles.progressContainer}>
-                  <View style={styles.progressBar}>
-                    <View 
-                      style={[styles.progressFill, { width: `${business.progress * 100}%` }]} 
-                    />
+                    <TouchableOpacity 
+                      style={styles.favoriteButton}
+                      onPress={() => handleToggleFavorite(business._id)}
+                    >
+                      <Ionicons 
+                        name={business.favorite ? "heart" : "heart-outline"} 
+                        size={20} 
+                        color={business.favorite ? "#f00" : "#fff"} 
+                      />
+                    </TouchableOpacity>
+                  </View>
+                  
+                  <View style={styles.businessInfo}>
+                    <ThemedText style={styles.businessName}>{business.name}</ThemedText>
+                    <ThemedText style={styles.businessDescription}>{business.description}</ThemedText>
+                  </View>
+                  
+                  <View style={styles.progressContainer}>
+                    <View style={styles.progressBar}>
+                      <View 
+                        style={[styles.progressFill, { width: `${business.progress * 100}%` }]} 
+                      />
+                    </View>
+                  </View>
+                  
+                  <View style={styles.businessFooter}>
+                    <ThemedText style={styles.businessAmount}>
+                      ${business.amount.toLocaleString()}
+                    </ThemedText>
+                    <ThemedText style={styles.daysLeft}>
+                      {business.daysLeft} days left
+                    </ThemedText>
                   </View>
                 </View>
-                
-                <View style={styles.businessFooter}>
-                  <ThemedText style={styles.businessAmount}>
-                    ${business.amount.toLocaleString()}
-                  </ThemedText>
-                  <ThemedText style={styles.daysLeft}>
-                    {business.daysLeft} days left
-                  </ThemedText>
-                </View>
-              </View>
-            ))}
+              ))
+            )}
           </View>
         </View>
       </ScrollView>
@@ -289,7 +309,7 @@ const styles = StyleSheet.create({
     marginHorizontal: 20,
     marginBottom: 20,
     alignItems: 'center',
-    minHeight: 220,
+    minHeight: 160,
   },
   investmentLabel: {
     color: '#ffffff',
@@ -305,27 +325,6 @@ const styles = StyleSheet.create({
     width: '100%',
     paddingHorizontal: 10,
     lineHeight: 40,
-  },
-  actionButtons: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    width: '100%',
-    marginTop: 25,
-  },
-  actionButton: {
-    backgroundColor: '#322987',
-    borderRadius: 20,
-    paddingVertical: 12,
-    paddingHorizontal: 25,
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 0.48,
-    justifyContent: 'center',
-  },
-  actionButtonText: {
-    color: '#ffffff',
-    marginLeft: 5,
-    fontWeight: '500',
   },
   discoverSection: {
     paddingHorizontal: 20,
@@ -439,6 +438,18 @@ const styles = StyleSheet.create({
   daysLeft: {
     color: '#aaa',
     fontSize: 14,
+  },
+  loadingText: {
+    color: '#ffffff',
+    textAlign: 'center',
+    fontSize: 16,
+    marginTop: 20,
+  },
+  errorText: {
+    color: '#ff4444',
+    textAlign: 'center',
+    fontSize: 16,
+    marginTop: 20,
   },
 });
 
