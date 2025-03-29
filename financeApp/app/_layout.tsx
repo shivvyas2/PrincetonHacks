@@ -42,31 +42,9 @@ function AuthProtection() {
   const { isSignedIn, isLoaded } = useAuth();
   const segments = useSegments();
   const router = useRouter();
-  const [hasSeenOnboarding, setHasSeenOnboarding] = useState<boolean | null>(null);
-  const [hasSignedUpBefore, setHasSignedUpBefore] = useState<boolean | null>(null);
 
   useEffect(() => {
-    // Check if user has gone through onboarding
-    AsyncStorage.getItem('hasSeenOnboarding').then((value) => {
-      setHasSeenOnboarding(value === 'true');
-    });
-
-    // Check if the user has signed up before
-    AsyncStorage.getItem('hasSignedUpBefore').then((value) => {
-      setHasSignedUpBefore(value === 'true');
-    });
-  }, []);
-
-  // Save flag when user successfully signs in
-  useEffect(() => {
-    if (isSignedIn) {
-      AsyncStorage.setItem('hasSignedUpBefore', 'true');
-      setHasSignedUpBefore(true);
-    }
-  }, [isSignedIn]);
-
-  useEffect(() => {
-    if (!isLoaded || hasSeenOnboarding === null || hasSignedUpBefore === null) {
+    if (!isLoaded) {
       return;
     }
 
@@ -74,31 +52,30 @@ function AuthProtection() {
     const inOnboardingGroup = segments[0] === 'onboarding';
     const inTabsGroup = segments[0] === '(tabs)';
 
-    // Only navigate if not already in the correct group
-    if (!isSignedIn) {
-      // For new users, show onboarding first
-      if (!hasSeenOnboarding && !hasSignedUpBefore && !inOnboardingGroup) {
-        router.replace('/onboarding');
-      } 
-      // For returning users or after onboarding, show auth screens
-      else if ((hasSeenOnboarding || hasSignedUpBefore) && !inAuthGroup && !inOnboardingGroup) {
-        router.replace('/auth/sign-in');
-      }
-    } else if (isSignedIn && !inTabsGroup) {
+    // Simple navigation logic
+    if (isSignedIn && !inTabsGroup) {
       // If signed in but not in tabs, go to home
       router.replace('/(tabs)');
+    } else if (!isSignedIn && !inAuthGroup && !inOnboardingGroup) {
+      // If not signed in and not in auth or onboarding, redirect to auth
+      router.replace('/auth/sign-in');
     }
-  }, [isLoaded, isSignedIn, hasSeenOnboarding, hasSignedUpBefore, segments, router]);
+  }, [isLoaded, isSignedIn, segments, router]);
 
   return null;
 }
 
-// Root layout that doesn't use auth directly
 export default function RootLayout() {
-  const colorScheme = useColorScheme();
-  const [loaded] = useFonts({
+  const [loaded, error] = useFonts({
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
   });
+
+  const colorScheme = useColorScheme();
+
+  // Expo Router uses Error Boundaries to catch errors in the navigation tree.
+  useEffect(() => {
+    if (error) throw error;
+  }, [error]);
 
   useEffect(() => {
     if (loaded) {
