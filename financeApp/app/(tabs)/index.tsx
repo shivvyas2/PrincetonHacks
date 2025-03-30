@@ -7,12 +7,11 @@ import { fetchBusinesses, fetchBusinessesByCategory, toggleFavorite } from '@/se
 import BottomSheet, { BottomSheetScrollView } from '@gorhom/bottom-sheet';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { knotService } from '@/services/knot';
-import { mockTransactionData, Transaction, TransactionData } from '@/data/mockTransactions';
+import { mockTransactionData } from '@/data/mockTransactions';
 import { analyzeTransactions, generatePersonalizedReason } from '@/services/transactionAnalysis';
 import { rankBusinesses } from '@/services/geminiService';
 import * as WebBrowser from 'expo-web-browser';
 import { Linking } from 'react-native';
-import { SafeAreaProvider, SafeAreaView as SafeAreaViewContext } from 'react-native-safe-area-context';
 
 // App theme colors
 const PRIMARY_COLOR = '#1E3A5F'; // Dark blue as primary color
@@ -47,16 +46,6 @@ interface Business {
   updatedAt: string;
 }
 
-<<<<<<< Updated upstream
-// Investment metrics interface
-interface InvestmentMetrics {
-  totalInvested: number;
-  totalImpact: number;
-  businessesSupported: number;
-  monthlyGrowth: number;
-}
-
-=======
 interface BusinessRecommendation {
   name: string;
   category: string;
@@ -75,6 +64,14 @@ interface KnotMerchant {
   status?: string;
 }
 
+// Investment metrics interface
+interface InvestmentMetrics {
+  totalInvested: number;
+  totalImpact: number;
+  businessesSupported: number;
+  monthlyGrowth: number;
+}
+
 // Update Knot SDK configuration
 const KNOT_CONFIG = {
   sessionId: 'test_session_123', // Test session ID
@@ -88,7 +85,18 @@ const KNOT_CONFIG = {
 // Update API base URL to use local backend
 const API_BASE_URL = 'http://10.29.251.136:3000';
 
->>>>>>> Stashed changes
+// Transaction interface
+interface Transaction {
+  id: string;
+  name: string;
+  amount: number;
+  date: string;
+  category: string;
+  price?: number;
+  products?: string[];
+  datetime?: string;
+}
+
 export default function HomeScreen() {
   const { isSignedIn, sessionId } = useAuth();
   const { user } = useUser();
@@ -98,20 +106,18 @@ export default function HomeScreen() {
   const [businessList, setBusinessList] = useState<Business[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-<<<<<<< Updated upstream
+  const [activeTab, setActiveTab] = useState<'knot' | 'businesses'>('businesses');
+  const [isKnotAuthenticated, setIsKnotAuthenticated] = useState(false);
+  const [showKnotUI, setShowKnotUI] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [knotError, setKnotError] = useState<string | null>(null);
+
   const [investmentMetrics, setInvestmentMetrics] = useState<InvestmentMetrics>({
     totalInvested: 2400,
     totalImpact: 1200,
     businessesSupported: 6,
     monthlyGrowth: 8.5
   });
-=======
-  const [activeTab, setActiveTab] = useState<'knot' | 'businesses'>('businesses');
-  const [isKnotAuthenticated, setIsKnotAuthenticated] = useState(false);
-  const [showKnotUI, setShowKnotUI] = useState(false);
-  const [isSyncing, setIsSyncing] = useState(false);
-  const [knotError, setKnotError] = useState<string | null>(null);
->>>>>>> Stashed changes
   
   // Get user name from Clerk
   const userName = user ? 
@@ -136,12 +142,7 @@ export default function HomeScreen() {
   const handleAnimate = useCallback(
     (fromIndex: number, toIndex: number) => {
       if (toIndex > 2) {
-<<<<<<< Updated upstream
-        // Force snap to the highest allowed point (80%)
-        bottomSheetRef.current?.snapToIndex(1);
-=======
         bottomSheetRef.current?.snapToIndex(2);
->>>>>>> Stashed changes
         return false;
       }
       return true;
@@ -166,10 +167,10 @@ export default function HomeScreen() {
       setLoading(true);
       const businesses = await fetchBusinesses();
       
-      // Get transaction insights
+      // Get transaction insights using Gemini
       const insights = analyzeTransactions(mockTransactionData);
       
-      // Rank businesses based on user's transaction data
+      // Rank businesses based on user's transaction data using Gemini
       const rankedBusinesses = await rankBusinesses(businesses, insights);
       
       setBusinessList(rankedBusinesses);
@@ -308,13 +309,20 @@ export default function HomeScreen() {
         console.log('Authentication cancelled or failed:', result);
         setKnotError('Authentication was cancelled or failed. Please try again.');
       }
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Authentication error:', error);
-      if (error.message.includes('Network request failed')) {
-        setKnotError('Cannot connect to server. Please check your internet connection and try again.');
-      } else {
-        setKnotError(error instanceof Error ? error.message : 'Failed to connect to DoorDash. Please try again later.');
+      
+      let errorMessage = 'Failed to connect to DoorDash. Please try again later.';
+      
+      if (error instanceof Error) {
+        if (error.message.includes('Network request failed')) {
+          errorMessage = 'Cannot connect to server. Please check your internet connection and try again.';
+        } else {
+          errorMessage = error.message;
+        }
       }
+      
+      setKnotError(errorMessage);
     } finally {
       setIsSyncing(false);
     }
@@ -349,14 +357,14 @@ export default function HomeScreen() {
       }
     } catch (error) {
       console.error('Error syncing transactions:', error);
-      setKnotError(error instanceof Error ? error.message : 'Failed to sync transactions. Please try again.');
+      const errorMessage = error instanceof Error ? error.message : 'Failed to sync transactions. Please try again.';
+      setKnotError(errorMessage);
     } finally {
       setIsSyncing(false);
     }
   };
 
   return (
-<<<<<<< Updated upstream
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaView style={styles.container}>
         {/* Header */}
@@ -370,17 +378,14 @@ export default function HomeScreen() {
           </View>
           <View style={styles.notificationBadge}>
             <Ionicons name="notifications-outline" size={24} color="#fff" />
-          
           </View>
         </View>
 
         <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-         
           {/* Investment Card */}
           <View style={styles.investmentCard}>
             <View style={styles.investmentCardHeader}>
               <ThemedText style={styles.investmentLabel}>Your Investment</ThemedText>
-              
             </View>
             
             <ThemedText style={styles.investmentAmount}>{investment}</ThemedText>
@@ -435,391 +440,248 @@ export default function HomeScreen() {
               <TouchableOpacity>
                 <ThemedText style={styles.viewAll}>View All</ThemedText>
               </TouchableOpacity>
-=======
-    <SafeAreaProvider>
-      <GestureHandlerRootView style={{ flex: 1 }}>
-        <SafeAreaViewContext style={styles.container} edges={['top', 'left', 'right']}>
-      {/* Header */}
-      <View style={styles.header}>
-        <View style={styles.userInfo}>
-              <Image source={{ uri: userAvatar }} style={styles.userAvatar} />
-          <View>
-            <ThemedText style={styles.greeting}>Good morning</ThemedText>
-            <ThemedText style={styles.userName}>{userName}!</ThemedText>
-          </View>
-        </View>
-        <View style={styles.notificationBadge}>
-          <Ionicons name="notifications-outline" size={24} color="#fff" />
-          <View style={styles.badge}>
-            <ThemedText style={styles.badgeText}>3</ThemedText>
-          </View>
-        </View>
-      </View>
-
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-        {/* Search Bar */}
-        <View style={styles.searchContainer}>
-          <Ionicons name="search-outline" size={20} color="#aaa" style={styles.searchIcon} />
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Search small businesses to invest..."
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-            placeholderTextColor="#aaa"
-          />
-        </View>
-
-        {/* Investment Card */}
-        <View style={styles.investmentCard}>
-          <ThemedText style={styles.investmentLabel}>Your Investment</ThemedText>
-          <ThemedText style={styles.investmentAmount}>{investment}</ThemedText>
->>>>>>> Stashed changes
             </View>
             
-            {/* Knot Authentication Card */}
-            {!isKnotAuthenticated ? (
-              <View style={styles.knotAuthContainer}>
-                <View style={styles.knotHeader}>
-                  <Image 
-                    source={{ uri: 'https://knotapi.com/favicon.ico' }} 
-                    style={styles.knotIcon} 
-                  />
-                  <ThemedText style={styles.sectionTitle}>Connect DoorDash</ThemedText>
-                </View>
-                
-                {knotError && (
-                  <View style={styles.errorContainer}>
-                    <ThemedText style={styles.errorText}>{knotError}</ThemedText>
-                  </View>
-                )}
-                
-                <TouchableOpacity 
-                  style={styles.knotAuthButton}
-                  onPress={handleKnotLogin}
-                >
-                  <View style={styles.knotAuthButtonContent}>
-                    <Image 
-                      source={{ uri: 'https://knotapi.com/favicon.ico' }} 
-                      style={styles.knotAuthButtonIcon} 
-                    />
-                    <View style={styles.knotAuthButtonText}>
-                      <ThemedText style={styles.knotAuthButtonTitle}>Connect DoorDash</ThemedText>
-                      <ThemedText style={styles.knotAuthButtonSubtitle}>
-                        Link your DoorDash account to view transaction insights
-                      </ThemedText>
-                    </View>
-                    <Ionicons name="chevron-forward" size={24} color={PRIMARY_COLOR} />
-                  </View>
-                </TouchableOpacity>
-              </View>
-            ) : (
-              <View style={styles.transactionCard}>
-                <View style={styles.transactionHeader}>
-                  <ThemedText style={styles.transactionTitle}>Recent Transactions</ThemedText>
-                  <TouchableOpacity 
-                    style={[styles.syncButton, isSyncing && styles.syncButtonDisabled]}
-                    onPress={handleSyncTransactions}
-                    disabled={isSyncing}
-                  >
-                    <Ionicons 
-                      name={isSyncing ? "sync" : "sync-outline"} 
-                      size={20} 
-                      color={isSyncing ? "#666" : PRIMARY_COLOR} 
-                    />
-                    <ThemedText style={[styles.syncButtonText, isSyncing && styles.syncButtonTextDisabled]}>
-                      {isSyncing ? 'Syncing...' : 'Sync'}
+            {/* Tabs for navigation */}
+            <View style={styles.tabContainer}>
+              <TouchableOpacity 
+                style={[styles.tab, activeTab === 'businesses' && styles.activeTab]} 
+                onPress={() => setActiveTab('businesses')}
+              >
+                <Ionicons 
+                  name="business-outline" 
+                  size={20} 
+                  color={activeTab === 'businesses' ? "#fff" : PRIMARY_COLOR} 
+                />
+                <ThemedText style={[styles.tabText, activeTab === 'businesses' && styles.activeTabText]}>
+                  Businesses
                 </ThemedText>
               </TouchableOpacity>
-                </View>
-
-                <View style={styles.transactionList}>
-                  {mockTransactionData.transactions.slice(0, 3).map((transaction: Transaction, index: number) => (
-                    <View key={index} style={styles.transactionItem}>
-                      <View style={styles.transactionInfo}>
-                        <ThemedText style={styles.transactionName}>
-                          {transaction.products[0].name}
-                        </ThemedText>
-                        <ThemedText style={styles.transactionDate}>
-                          {new Date(transaction.datetime).toLocaleDateString()}
-                        </ThemedText>
-                      </View>
-                      <ThemedText style={styles.transactionAmount}>
-                        ${transaction.price.total.toFixed(2)}
-                      </ThemedText>
-                    </View>
-                  ))}
-                </View>
-
-                <View style={styles.insightsContainer}>
-                  <ThemedText style={styles.insightsTitle}>Spending Insights</ThemedText>
-                  <View style={styles.insightsGrid}>
-                    <View style={styles.insightItem}>
-                      <ThemedText style={styles.insightValue}>
-                        ${mockTransactionData.transactions.reduce((sum: number, t: Transaction) => sum + t.price.total, 0).toFixed(2)}
-                      </ThemedText>
-                      <ThemedText style={styles.insightLabel}>Total Spent</ThemedText>
-                    </View>
-                    <View style={styles.insightItem}>
-                      <ThemedText style={styles.insightValue}>
-                        {mockTransactionData.transactions.length}
-                      </ThemedText>
-                      <ThemedText style={styles.insightLabel}>Transactions</ThemedText>
-                    </View>
-                    <View style={styles.insightItem}>
-                      <ThemedText style={styles.insightValue}>
-                        ${(mockTransactionData.transactions.reduce((sum: number, t: Transaction) => sum + t.price.total, 0) / mockTransactionData.transactions.length).toFixed(2)}
-                      </ThemedText>
-                      <ThemedText style={styles.insightLabel}>Avg. Order</ThemedText>
-                    </View>
-                  </View>
-                </View>
-
-                <View style={styles.knotFooter}>
-                  <ThemedText style={styles.knotFooterText}>
-                    Powered by Knot API
-                  </ThemedText>
-                  <TouchableOpacity style={styles.knotSettingsButton}>
-                    <ThemedText style={styles.knotSettingsText}>Settings</ThemedText>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            )}
-          </ScrollView>
-          
-          {/* Bottom Sheet */}
-          <BottomSheet
-            ref={bottomSheetRef}
-            index={0}
-            snapPoints={snapPoints}
-            onChange={handleSheetChanges}
-            handleIndicatorStyle={styles.bottomSheetIndicator}
-            handleStyle={styles.bottomSheetHandle}
-            backgroundStyle={styles.bottomSheetBackground}
-            enableContentPanningGesture={true}
-            enableHandlePanningGesture={true}
-            keyboardBehavior="extend"
-            android_keyboardInputMode="adjustResize"
-            enableOverDrag={false}
-            enablePanDownToClose={false}
-            animateOnMount
-            onAnimate={handleAnimate}
-          >
-            <View style={styles.bottomSheetHeader}>
-              <View style={styles.sectionHeader}>
-                <View style={styles.tabContainer}>
               <TouchableOpacity 
-                    style={[styles.tab, activeTab === 'businesses' && styles.activeTab]}
-                    onPress={() => setActiveTab('businesses')}
-                  >
-                    <Ionicons 
-                      name="business-outline" 
-                      size={20} 
-                      color={activeTab === 'businesses' ? "#fff" : PRIMARY_COLOR} 
-                    />
-                    <ThemedText 
-                style={[
-                        styles.tabText,
-                        activeTab === 'businesses' && styles.activeTabText
-                      ]}
-                    >
-                      Businesses
-                    </ThemedText>
-                  </TouchableOpacity>
-                  <TouchableOpacity 
-                    style={[styles.tab, activeTab === 'knot' && styles.activeTab]}
-                    onPress={() => setActiveTab('knot')}
-                  >
-                  <Ionicons 
-                      name="card-outline" 
-                      size={20} 
-                      color={activeTab === 'knot' ? "#fff" : PRIMARY_COLOR} 
-                    />
-                <ThemedText 
-                  style={[
-                        styles.tabText,
-                        activeTab === 'knot' && styles.activeTabText
-                      ]}
-                    >
-                      Transactions
-                    </ThemedText>
-                  </TouchableOpacity>
-                </View>
-              </View>
+                style={[styles.tab, activeTab === 'knot' && styles.activeTab]} 
+                onPress={() => setActiveTab('knot')}
+              >
+                <Ionicons 
+                  name="card-outline" 
+                  size={20} 
+                  color={activeTab === 'knot' ? "#fff" : PRIMARY_COLOR} 
+                />
+                <ThemedText style={[styles.tabText, activeTab === 'knot' && styles.activeTabText]}>
+                  Transactions
+                </ThemedText>
+              </TouchableOpacity>
             </View>
             
-            {/* Scrollable content inside bottom sheet */}
-            <BottomSheetScrollView contentContainerStyle={styles.bottomSheetContent}>
-              {activeTab === 'knot' ? (
-                <View style={styles.knotSection}>
-                  {!isKnotAuthenticated ? (
-                    <View style={styles.knotAuthContainer}>
-                      <View style={styles.knotHeader}>
+            {activeTab === 'businesses' && (
+              <ScrollView 
+                horizontal 
+                showsHorizontalScrollIndicator={false}
+                style={styles.categoriesContainer}
+              >
+                {categories.map((category) => (
+                  <TouchableOpacity 
+                    key={category.id}
+                    style={[
+                      styles.categoryButton,
+                      selectedCategory === category.id && styles.activeCategoryButton
+                    ]}
+                    onPress={() => setSelectedCategory(category.id)}
+                  >
+                    {category.icon && (
+                      <Ionicons 
+                        name={category.icon} 
+                        size={16} 
+                        color={selectedCategory === category.id ? "#fff" : PRIMARY_COLOR} 
+                      />
+                    )}
+                    <ThemedText 
+                      style={[
+                        styles.categoryText,
+                        selectedCategory === category.id && styles.activeCategoryText
+                      ]}
+                    >
+                      {category.name}
+                    </ThemedText>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            )}
+          </View>
+          
+          {/* Scrollable content inside bottom sheet */}
+          <BottomSheetScrollView contentContainerStyle={styles.businessCardsContainer}>
+            {activeTab === 'knot' ? (
+              <View style={styles.knotSection}>
+                {!isKnotAuthenticated ? (
+                  <View style={styles.knotAuthContainer}>
+                    <View style={styles.knotHeader}>
+                      <Image 
+                        source={{ uri: 'https://knotapi.com/favicon.ico' }} 
+                        style={styles.knotIcon} 
+                      />
+                      <ThemedText style={styles.sectionTitle}>Connect DoorDash</ThemedText>
+                    </View>
+                    
+                    {knotError && (
+                      <View style={styles.errorContainer}>
+                        <ThemedText style={styles.errorText}>{knotError}</ThemedText>
+                      </View>
+                    )}
+                    
+                    <TouchableOpacity 
+                      style={styles.knotAuthButton}
+                      onPress={handleKnotLogin}
+                    >
+                      <View style={styles.knotAuthButtonContent}>
                         <Image 
                           source={{ uri: 'https://knotapi.com/favicon.ico' }} 
-                          style={styles.knotIcon} 
+                          style={styles.knotAuthButtonIcon} 
                         />
-                        <ThemedText style={styles.sectionTitle}>Connect DoorDash</ThemedText>
+                        <View style={styles.knotAuthButtonText}>
+                          <ThemedText style={styles.knotAuthButtonTitle}>Connect DoorDash</ThemedText>
+                          <ThemedText style={styles.knotAuthButtonSubtitle}>
+                            Link your DoorDash account to view transaction insights
+                          </ThemedText>
+                        </View>
+                        <Ionicons name="chevron-forward" size={24} color={PRIMARY_COLOR} />
                       </View>
-                      
-                      {knotError && (
-                        <View style={styles.errorContainer}>
-                          <ThemedText style={styles.errorText}>{knotError}</ThemedText>
-                        </View>
-                      )}
-                      
+                    </TouchableOpacity>
+                  </View>
+                ) : (
+                  <View style={styles.transactionCard}>
+                    <View style={styles.transactionHeader}>
+                      <ThemedText style={styles.transactionTitle}>Recent Transactions</ThemedText>
                       <TouchableOpacity 
-                        style={styles.knotAuthButton}
-                        onPress={handleKnotLogin}
+                        style={[styles.syncButton, isSyncing && styles.syncButtonDisabled]}
+                        onPress={handleSyncTransactions}
+                        disabled={isSyncing}
                       >
-                        <View style={styles.knotAuthButtonContent}>
-                          <Image 
-                            source={{ uri: 'https://knotapi.com/favicon.ico' }} 
-                            style={styles.knotAuthButtonIcon} 
-                          />
-                          <View style={styles.knotAuthButtonText}>
-                            <ThemedText style={styles.knotAuthButtonTitle}>Connect DoorDash</ThemedText>
-                            <ThemedText style={styles.knotAuthButtonSubtitle}>
-                              Link your DoorDash account to view transaction insights
-                            </ThemedText>
-                          </View>
-                          <Ionicons name="chevron-forward" size={24} color={PRIMARY_COLOR} />
-                        </View>
+                        <Ionicons 
+                          name={isSyncing ? "sync" : "sync-outline"} 
+                          size={20} 
+                          color={isSyncing ? "#666" : PRIMARY_COLOR} 
+                        />
+                        <ThemedText style={[styles.syncButtonText, isSyncing && styles.syncButtonTextDisabled]}>
+                          {isSyncing ? 'Syncing...' : 'Sync'}
+                        </ThemedText>
                       </TouchableOpacity>
                     </View>
-                  ) : (
-                    <View style={styles.transactionCard}>
-                      <View style={styles.transactionHeader}>
-                        <ThemedText style={styles.transactionTitle}>Recent Transactions</ThemedText>
-                        <TouchableOpacity 
-                          style={[styles.syncButton, isSyncing && styles.syncButtonDisabled]}
-                          onPress={handleSyncTransactions}
-                          disabled={isSyncing}
-                        >
-                          <Ionicons 
-                            name={isSyncing ? "sync" : "sync-outline"} 
-                            size={20} 
-                            color={isSyncing ? "#666" : PRIMARY_COLOR} 
-                          />
-                          <ThemedText style={[styles.syncButtonText, isSyncing && styles.syncButtonTextDisabled]}>
-                            {isSyncing ? 'Syncing...' : 'Sync'}
-                </ThemedText>
-              </TouchableOpacity>
-                      </View>
 
-                      <View style={styles.transactionList}>
-                        {mockTransactionData.transactions.slice(0, 3).map((transaction: Transaction, index: number) => (
-                          <View key={index} style={styles.transactionItem}>
-                            <View style={styles.transactionInfo}>
-                              <ThemedText style={styles.transactionName}>
-                                {transaction.products[0].name}
-                              </ThemedText>
-                              <ThemedText style={styles.transactionDate}>
-                                {new Date(transaction.datetime).toLocaleDateString()}
-                              </ThemedText>
-                            </View>
-                            <ThemedText style={styles.transactionAmount}>
-                              ${transaction.price.total.toFixed(2)}
+                    <View style={styles.transactionList}>
+                      {mockTransactionData.transactions && mockTransactionData.transactions.slice(0, 3).map((transaction: any, index: number) => (
+                        <View key={index} style={styles.transactionItem}>
+                          <View style={styles.transactionInfo}>
+                            <ThemedText style={styles.transactionName}>
+                              {transaction.products?.[0]?.name || 'Transaction'}
+                            </ThemedText>
+                            <ThemedText style={styles.transactionDate}>
+                              {new Date(transaction.datetime || Date.now()).toLocaleDateString()}
                             </ThemedText>
                           </View>
-                        ))}
-                      </View>
+                          <ThemedText style={styles.transactionAmount}>
+                            ${transaction.price?.total?.toFixed(2) || '0.00'}
+                          </ThemedText>
+                        </View>
+                      ))}
+                    </View>
 
-                      <View style={styles.insightsContainer}>
-                        <ThemedText style={styles.insightsTitle}>Spending Insights</ThemedText>
-                        <View style={styles.insightsGrid}>
-                          <View style={styles.insightItem}>
-                            <ThemedText style={styles.insightValue}>
-                              ${mockTransactionData.transactions.reduce((sum: number, t: Transaction) => sum + t.price.total, 0).toFixed(2)}
-                            </ThemedText>
-                            <ThemedText style={styles.insightLabel}>Total Spent</ThemedText>
-                          </View>
-                          <View style={styles.insightItem}>
-                            <ThemedText style={styles.insightValue}>
-                              {mockTransactionData.transactions.length}
-                            </ThemedText>
-                            <ThemedText style={styles.insightLabel}>Transactions</ThemedText>
-                          </View>
-                          <View style={styles.insightItem}>
-                            <ThemedText style={styles.insightValue}>
-                              ${(mockTransactionData.transactions.reduce((sum: number, t: Transaction) => sum + t.price.total, 0) / mockTransactionData.transactions.length).toFixed(2)}
-                            </ThemedText>
-                            <ThemedText style={styles.insightLabel}>Avg. Order</ThemedText>
-                          </View>
+                    <View style={styles.insightsContainer}>
+                      <ThemedText style={styles.insightsTitle}>Spending Insights</ThemedText>
+                      <View style={styles.insightsGrid}>
+                        <View style={styles.insightItem}>
+                          <ThemedText style={styles.insightValue}>
+                            ${mockTransactionData.transactions && mockTransactionData.transactions.reduce((sum: number, t: any) => sum + (t.price?.total || 0), 0).toFixed(2)}
+                          </ThemedText>
+                          <ThemedText style={styles.insightLabel}>Total Spent</ThemedText>
+                        </View>
+                        <View style={styles.insightItem}>
+                          <ThemedText style={styles.insightValue}>
+                            {mockTransactionData.transactions?.length || 0}
+                          </ThemedText>
+                          <ThemedText style={styles.insightLabel}>Transactions</ThemedText>
+                        </View>
+                        <View style={styles.insightItem}>
+                          <ThemedText style={styles.insightValue}>
+                            ${mockTransactionData.transactions && mockTransactionData.transactions.length > 0 
+                              ? (mockTransactionData.transactions.reduce((sum: number, t: any) => sum + (t.price?.total || 0), 0) / mockTransactionData.transactions.length).toFixed(2) 
+                              : '0.00'}
+                          </ThemedText>
+                          <ThemedText style={styles.insightLabel}>Avg. Order</ThemedText>
                         </View>
                       </View>
+                    </View>
 
-                      <View style={styles.knotFooter}>
-                        <ThemedText style={styles.knotFooterText}>
-                          Powered by Knot API
-                        </ThemedText>
-                        <TouchableOpacity style={styles.knotSettingsButton}>
-                          <ThemedText style={styles.knotSettingsText}>Settings</ThemedText>
+                    <View style={styles.knotFooter}>
+                      <ThemedText style={styles.knotFooterText}>
+                        Powered by Knot API & Gemini AI
+                      </ThemedText>
+                      <TouchableOpacity style={styles.knotSettingsButton}>
+                        <ThemedText style={styles.knotSettingsText}>Settings</ThemedText>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                )}
+              </View>
+            ) : (
+              <View style={styles.businessCards}>
+                {loading ? (
+                  <ThemedText style={styles.loadingText}>Loading...</ThemedText>
+                ) : error ? (
+                  <ThemedText style={styles.errorText}>{error}</ThemedText>
+                ) : (
+                  businessList.map((business) => (
+                    <View key={business._id} style={styles.businessCard}>
+                      <View style={styles.businessImageContainer}>
+                        <Image 
+                          source={{ uri: business.image }}
+                          style={styles.businessImage} 
+                          resizeMode="cover"
+                        />
+                        <TouchableOpacity 
+                          style={styles.favoriteButton}
+                          onPress={() => handleToggleFavorite(business._id)}
+                        >
+                          <Ionicons 
+                            name={business.favorite ? "heart" : "heart-outline"} 
+                            size={20} 
+                            color={business.favorite ? "#f00" : "#fff"} 
+                          />
                         </TouchableOpacity>
                       </View>
+                      
+                      <View style={styles.businessInfo}>
+                        <ThemedText style={styles.businessName}>{business.name}</ThemedText>
+                        <ThemedText style={styles.businessDescription}>{business.description}</ThemedText>
+                        {business.reason && (
+                          <ThemedText style={styles.businessReason}>{business.reason}</ThemedText>
+                        )}
+                      </View>
+                      
+                      <View style={styles.progressContainer}>
+                        <View style={styles.progressBar}>
+                          <View 
+                            style={[styles.progressFill, { width: `${business.progress * 100}%` }]} 
+                          />
+                        </View>
+                      </View>
+                      
+                      <View style={styles.businessFooter}>
+                        <ThemedText style={styles.businessAmount}>
+                          ${business.amount.toLocaleString()}
+                        </ThemedText>
+                        <ThemedText style={styles.daysLeft}>
+                          {business.daysLeft} days left
+                        </ThemedText>
+                      </View>
                     </View>
-                  )}
-                </View>
-              ) : (
-          <View style={styles.businessCards}>
-                  {loading ? (
-                    <ThemedText style={styles.loadingText}>Loading...</ThemedText>
-                  ) : error ? (
-                    <ThemedText style={styles.errorText}>{error}</ThemedText>
-                  ) : (
-                    businessList.map((business) => (
-                      <View key={business._id} style={styles.businessCard}>
-                <View style={styles.businessImageContainer}>
-                  <Image 
-                            source={{ uri: business.image }}
-                    style={styles.businessImage} 
-                    resizeMode="cover"
-                  />
-                  <TouchableOpacity 
-                    style={styles.favoriteButton}
-                            onPress={() => handleToggleFavorite(business._id)}
-                  >
-                    <Ionicons 
-                      name={business.favorite ? "heart" : "heart-outline"} 
-                      size={20} 
-                      color={business.favorite ? "#f00" : "#fff"} 
-                    />
-                  </TouchableOpacity>
-                </View>
-                
-                <View style={styles.businessInfo}>
-                  <ThemedText style={styles.businessName}>{business.name}</ThemedText>
-                  <ThemedText style={styles.businessDescription}>{business.description}</ThemedText>
-                          {business.reason && (
-                            <ThemedText style={styles.businessReason}>{business.reason}</ThemedText>
-                          )}
-                </View>
-                
-                <View style={styles.progressContainer}>
-                  <View style={styles.progressBar}>
-                    <View 
-                      style={[styles.progressFill, { width: `${business.progress * 100}%` }]} 
-                    />
-                  </View>
-                </View>
-                
-                <View style={styles.businessFooter}>
-                  <ThemedText style={styles.businessAmount}>
-                    ${business.amount.toLocaleString()}
-                  </ThemedText>
-                  <ThemedText style={styles.daysLeft}>
-                    {business.daysLeft} days left
-                  </ThemedText>
-                </View>
+                  ))
+                )}
               </View>
-                    ))
-                  )}
-          </View>
-              )}
-            </BottomSheetScrollView>
-          </BottomSheet>
-        </SafeAreaViewContext>
-      </GestureHandlerRootView>
-    </SafeAreaProvider>
+            )}
+          </BottomSheetScrollView>
+        </BottomSheet>
+      </SafeAreaView>
+    </GestureHandlerRootView>
   );
 }
 
@@ -895,7 +757,6 @@ const styles = StyleSheet.create({
     color: '#fff',
   },
   investmentCard: {
-    
     borderRadius: 20,
     padding: 20,
     marginHorizontal: 20,
@@ -905,26 +766,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-<<<<<<< Updated upstream
     marginBottom: 2,
   },
   investmentLabel: {
     color: '#ffffff',
     fontSize: 14,
-=======
-    minHeight: 160,
-    justifyContent: 'center',
   },
-  investmentLabel: {
-    color: '#ffffff',
-    fontSize: 18,
-    marginBottom: 20,
->>>>>>> Stashed changes
-  },
- 
   investmentAmount: {
     color: '#ffffff',
-<<<<<<< Updated upstream
     fontSize: 24,
     fontWeight: 'bold',
     marginVertical: 2,
@@ -974,14 +823,6 @@ const styles = StyleSheet.create({
   metricLabel: {
     color: 'rgba(255, 255, 255, 0.7)',
     fontSize: 12,
-=======
-    fontSize: 36,
-    fontWeight: 'bold',
-    textAlign: 'center',
-    width: '100%',
-    paddingHorizontal: 10,
-    lineHeight: 45,
->>>>>>> Stashed changes
   },
   bottomSheetPlaceholder: {
     height: height * 0.4, // 40% of screen height for placeholder
@@ -1016,6 +857,33 @@ const styles = StyleSheet.create({
   viewAll: {
     color: '#666',
     fontSize: 14,
+  },
+  tabContainer: {
+    flexDirection: 'row',
+    borderRadius: 25,
+    backgroundColor: '#f0f0f0',
+    marginBottom: 15,
+    padding: 5,
+  },
+  tab: {
+    flex: 1,
+    paddingVertical: 8,
+    paddingHorizontal: 15,
+    borderRadius: 20,
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'center',
+  },
+  activeTab: {
+    backgroundColor: PRIMARY_COLOR,
+  },
+  tabText: {
+    color: PRIMARY_COLOR,
+    fontSize: 14,
+    marginLeft: 5,
+  },
+  activeTabText: {
+    color: '#fff',
   },
   categoriesContainer: {
     flexDirection: 'row',
@@ -1127,27 +995,56 @@ const styles = StyleSheet.create({
     marginTop: 20,
   },
   errorText: {
-    color: '#d32f2f',
-    fontSize: 14,
+    color: '#f00',
     textAlign: 'center',
+    fontSize: 16,
     marginTop: 20,
   },
-  businessReason: {
-    fontSize: 14,
-    color: '#3A6491',
-    fontStyle: 'italic',
-    marginTop: 8,
-    marginBottom: 10,
-    lineHeight: 20,
-  },
-  knotSection: {
+  // Knot Authentication Styles
+  knotAuthContainer: {
     padding: 20,
   },
-  refreshButton: {
-    backgroundColor: ACCENT_COLOR,
-    padding: 8,
-    borderRadius: 20,
+  errorContainer: {
+    backgroundColor: '#ffebee',
+    padding: 10,
+    borderRadius: 8,
+    marginBottom: 15,
   },
+  knotAuthButton: {
+    backgroundColor: '#fff',
+    borderRadius: 15,
+    padding: 20,
+    marginTop: 15,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  knotAuthButtonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  knotAuthButtonIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    marginRight: 15,
+  },
+  knotAuthButtonText: {
+    flex: 1,
+  },
+  knotAuthButtonTitle: {
+    color: PRIMARY_COLOR,
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 4,
+  },
+  knotAuthButtonSubtitle: {
+    color: '#666',
+    fontSize: 14,
+  },
+  // Transaction-related styles
   transactionCard: {
     backgroundColor: '#fff',
     borderRadius: 15,
@@ -1157,7 +1054,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
-    elevation: 2,
+    elevation: 3,
   },
   transactionHeader: {
     flexDirection: 'row',
@@ -1170,22 +1067,9 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: PRIMARY_COLOR,
   },
-  transactionCountContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 5,
-  },
-  transactionCount: {
-    fontSize: 12,
-    color: '#666',
-  },
-  lastSync: {
-    fontSize: 10,
-    color: '#666',
-    marginLeft: 8,
-  },
   transactionList: {
     marginBottom: 20,
+    maxHeight: 200,
   },
   transactionItem: {
     flexDirection: 'row',
@@ -1212,14 +1096,33 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: PRIMARY_COLOR,
   },
+  syncButton: {
+    backgroundColor: PRIMARY_COLOR,
+    borderRadius: 10,
+    paddingVertical: 8,
+    paddingHorizontal: 15,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  syncButtonDisabled: {
+    opacity: 0.5,
+  },
+  syncButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    marginLeft: 5,
+  },
+  syncButtonTextDisabled: {
+    color: '#ccc',
+  },
   insightsContainer: {
-    marginTop: 15,
+    padding: 15,
   },
   insightsTitle: {
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: 'bold',
     color: PRIMARY_COLOR,
-    marginBottom: 8,
+    marginBottom: 10,
   },
   insightsGrid: {
     flexDirection: 'row',
@@ -1228,20 +1131,39 @@ const styles = StyleSheet.create({
   insightItem: {
     flex: 1,
     alignItems: 'center',
-    padding: 10,
-    backgroundColor: '#f8f9fa',
-    borderRadius: 10,
-    marginHorizontal: 5,
   },
   insightValue: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: 'bold',
     color: PRIMARY_COLOR,
-    marginBottom: 2,
+    marginBottom: 4,
   },
   insightLabel: {
-    fontSize: 10,
+    fontSize: 12,
     color: '#666',
+  },
+  knotFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 15,
+  },
+  knotFooterText: {
+    fontSize: 12,
+    color: '#666',
+  },
+  knotSettingsButton: {
+    backgroundColor: PRIMARY_COLOR,
+    borderRadius: 10,
+    paddingVertical: 8,
+    paddingHorizontal: 15,
+  },
+  knotSettingsText: {
+    fontSize: 14,
+    color: '#fff',
+  },
+  knotSection: {
+    padding: 20,
   },
   knotHeader: {
     flexDirection: 'row',
@@ -1249,127 +1171,13 @@ const styles = StyleSheet.create({
     marginBottom: 15,
   },
   knotIcon: {
-    width: 24,
-    height: 24,
-    marginRight: 8,
+    width: 20,
+    height: 20,
+    marginRight: 10,
   },
-  knotFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginTop: 15,
-    paddingTop: 15,
-    borderTopWidth: 1,
-    borderTopColor: '#f0f0f0',
-  },
-  knotFooterText: {
-    fontSize: 10,
-    color: '#666',
-  },
-  knotSettingsButton: {
-    backgroundColor: '#f0f0f0',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 15,
-  },
-  knotSettingsText: {
-    fontSize: 10,
-    color: PRIMARY_COLOR,
-  },
-  tabContainer: {
-    flexDirection: 'row',
-    backgroundColor: '#f0f0f0',
-    borderRadius: 20,
-    padding: 4,
-  },
-  tab: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 16,
-  },
-  activeTab: {
-    backgroundColor: PRIMARY_COLOR,
-  },
-  tabText: {
-    marginLeft: 8,
-    color: PRIMARY_COLOR,
-    fontWeight: '500',
-  },
-  activeTabText: {
-    color: '#fff',
-  },
-  bottomSheetContent: {
-    paddingHorizontal: 20,
-    paddingBottom: 30,
-  },
-  knotAuthContainer: {
-    padding: 20,
-  },
-  errorContainer: {
-    backgroundColor: '#ffebee',
-    padding: 10,
-    borderRadius: 8,
-    marginBottom: 15,
-  },
-  knotAuthButton: {
-    backgroundColor: '#fff',
-    borderRadius: 15,
-    padding: 20,
-    marginTop: 15,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  knotAuthButtonContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  knotAuthButtonIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    marginRight: 15,
-  },
-  knotAuthButtonText: {
-    flex: 1,
-  },
-  knotAuthButtonTitle: {
-    color: PRIMARY_COLOR,
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 4,
-  },
-  knotAuthButtonSubtitle: {
-    color: '#666',
-    fontSize: 14,
-  },
-  loadingContainer: {
-    padding: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  syncButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#f0f0f0',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 15,
-  },
-  syncButtonDisabled: {
-    backgroundColor: '#e0e0e0',
-  },
-  syncButtonText: {
-    marginLeft: 4,
+  businessReason: {
     fontSize: 12,
-    color: PRIMARY_COLOR,
-  },
-  syncButtonTextDisabled: {
     color: '#666',
+    fontStyle: 'italic',
   },
-});
-
+} as const);

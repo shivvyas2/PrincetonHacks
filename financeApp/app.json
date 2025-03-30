@@ -4,13 +4,9 @@
     "slug": "financeApp",
     "version": "1.0.0",
     "orientation": "portrait",
-<<<<<<< Updated upstream
     "icon": "./assets/images/logo.png",
     "scheme": "myapp",
-=======
-    "icon": "./assets/images/icon.png",
-    "scheme": "financeapp",
->>>>>>> Stashed changes
+
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
