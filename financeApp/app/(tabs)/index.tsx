@@ -1,8 +1,18 @@
-import { View, StyleSheet, Image, TextInput, ScrollView, TouchableOpacity, SafeAreaView } from 'react-native';
+import { View, StyleSheet, Image, TextInput, ScrollView, TouchableOpacity, SafeAreaView, Dimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useAuth } from '@clerk/clerk-expo';
-import { useState } from 'react';
+import { useAuth, useUser } from '@clerk/clerk-expo';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { ThemedText } from '@/components/ThemedText';
+import { fetchBusinesses, fetchBusinessesByCategory, toggleFavorite } from '@/services/api';
+import BottomSheet, { BottomSheetScrollView } from '@gorhom/bottom-sheet';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+
+// App theme colors
+const PRIMARY_COLOR = '#1E3A5F'; // Dark blue as primary color
+const ACCENT_COLOR = '#3A6491'; // Medium blue as accent
+
+// Screen dimensions
+const { height } = Dimensions.get('window');
 
 // Category data
 const categories = [
@@ -11,210 +21,311 @@ const categories = [
   { id: 'social', name: 'Social Welfare', icon: 'people-outline' as const, active: false },
 ];
 
-// Business data
+// Business interface
 interface Business {
-  id: number;
+  _id: string;
+  id: string;
   name: string;
   description: string;
-  image: any;
+  image: string;
   amount: number;
   daysLeft: number;
   progress: number;
   favorite: boolean;
+  category: string;
+  __v: number;
+  createdAt: string;
+  updatedAt: string;
 }
-
-const businesses: Business[] = [
-  {
-    id: 1,
-    name: 'Business 1',
-    description: 'Most sleek and innovative electric cars in the world.',
-    image: require('@/assets/images/Image.png'),
-    amount: 7250,
-    daysLeft: 15,
-    progress: 0.7,
-    favorite: false,
-  },
-  {
-    id: 2,
-    name: 'Business 2',
-    description: 'Most sleek and innovative tech in the world.',
-    image: require('@/assets/images/Center Content.png'),
-    amount: 1330,
-    daysLeft: 23,
-    progress: 0.4,
-    favorite: false,
-  },
-];
 
 export default function HomeScreen() {
   const { isSignedIn, sessionId } = useAuth();
-  const [investment, setInvestment] = useState('£12,565,058');
+  const { user } = useUser();
+  const [investment, setInvestment] = useState('$2,400');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
-  const [businessList, setBusinessList] = useState(businesses);
+  const [businessList, setBusinessList] = useState<Business[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   
-  // Placeholder user data since useAuth doesn't directly expose user info
-  const userName = "Natalie Workman";
-  const userAvatar = 'https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y';
+  // Get user name from Clerk
+  const userName = user ? 
+    (user.firstName || user.username || user.emailAddresses[0]?.emailAddress?.split('@')[0] || "Finance User") : 
+    "Finance User";
+  
+  // Get user avatar from Clerk
+  const userAvatar = user?.imageUrl || 'https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y';
 
-  const toggleFavorite = (id: number) => {
-    setBusinessList(businessList.map(business => 
-      business.id === id ? {...business, favorite: !business.favorite} : business
-    ));
+  // Bottom sheet reference
+  const bottomSheetRef = useRef<BottomSheet>(null);
+  
+  // Bottom sheet snap points (50%, 70%, 80% of screen height)
+  const snapPoints = useMemo(() => ['50%', '70%', '80%'], []);
+  
+  // Handle bottom sheet changes
+  const handleSheetChanges = useCallback((index: number) => {
+    console.log('Bottom sheet index changed:', index);
+  }, []);
+  
+  // Handle sheet position exceeding max height
+  const handleAnimate = useCallback(
+    (fromIndex: number, toIndex: number) => {
+      // If trying to go beyond the highest snap point (index 2 which is 80%)
+      if (toIndex > 2) {
+        // Force snap to the highest allowed point (80%)
+        bottomSheetRef.current?.snapToIndex(2);
+        return false;
+      }
+      return true;
+    },
+    []
+  );
+  
+  useEffect(() => {
+    if (isSignedIn) {
+      loadBusinesses();
+    }
+  }, [isSignedIn]);
+
+  useEffect(() => {
+    if (isSignedIn) {
+      loadBusinessesByCategory(selectedCategory);
+    }
+  }, [selectedCategory, isSignedIn]);
+
+  const loadBusinesses = async () => {
+    if (!user?.id) {
+      console.log('User not authenticated');
+      return;
+    }
+    
+    setLoading(true);
+    try {
+      const data = await fetchBusinesses(user?.id);
+      setBusinessList(data);
+      setError(null);
+    } catch (err) {
+      console.error('Error:', err);
+      setError('Failed to load businesses');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadBusinessesByCategory = async (category: string) => {
+    if (!user?.id) {
+      console.log('User not authenticated');
+      return;
+    }
+    
+    if (category === 'all') {
+      loadBusinesses();
+      return;
+    }
+    
+    setLoading(true);
+    try {
+      const data = await fetchBusinessesByCategory(category, user?.id);
+      setBusinessList(data);
+      setError(null);
+    } catch (err) {
+      console.error('Error:', err);
+      setError(`Failed to load ${category} businesses`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleToggleFavorite = async (id: string) => {
+    if (!user?.id) {
+      console.log('User not authenticated');
+      return;
+    }
+    
+    try {
+      await toggleFavorite(id, user.id);
+      // Update the business list to reflect the change
+      setBusinessList(prevList =>
+        prevList.map(business =>
+          business.id === id
+            ? { ...business, favorite: !business.favorite }
+            : business
+        )
+      );
+    } catch (err) {
+      console.error('Error toggling favorite:', err);
+    }
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <View style={styles.userInfo}>
-          <Image 
-            source={{ uri: userAvatar }}
-            style={styles.userAvatar} 
-          />
-          <View>
-            <ThemedText style={styles.greeting}>Good morning</ThemedText>
-            <ThemedText style={styles.userName}>{userName}!</ThemedText>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <SafeAreaView style={styles.container}>
+        {/* Header */}
+        <View style={styles.header}>
+          <View style={styles.userInfo}>
+            <Image source={{ uri: userAvatar }} style={styles.userAvatar} />
+            <View>
+              <ThemedText style={styles.greeting}>Good morning</ThemedText>
+              <ThemedText style={styles.userName}>{userName}!</ThemedText>
+            </View>
+          </View>
+          <View style={styles.notificationBadge}>
+            <Ionicons name="notifications-outline" size={24} color="#fff" />
+            <View style={styles.badge}>
+              <ThemedText style={styles.badgeText}>3</ThemedText>
+            </View>
           </View>
         </View>
-        <View style={styles.notificationBadge}>
-          <Ionicons name="notifications-outline" size={24} color="#fff" />
-          <View style={styles.badge}>
-            <ThemedText style={styles.badgeText}>3</ThemedText>
+
+        <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+          {/* Search Bar */}
+          <View style={styles.searchContainer}>
+            <Ionicons name="search-outline" size={20} color="#aaa" style={styles.searchIcon} />
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Search small businesses to invest..."
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              placeholderTextColor="#aaa"
+            />
           </View>
-        </View>
-      </View>
 
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-        {/* Search Bar */}
-        <View style={styles.searchContainer}>
-          <Ionicons name="search-outline" size={20} color="#aaa" style={styles.searchIcon} />
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Search small businesses to invest..."
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-            placeholderTextColor="#aaa"
-          />
-        </View>
-
-        {/* Investment Card */}
-        <View style={styles.investmentCard}>
-          <ThemedText style={styles.investmentLabel}>Your Investment</ThemedText>
-          <ThemedText style={styles.investmentAmount}>{investment}</ThemedText>
+          {/* Investment Card */}
+          <View style={styles.investmentCard}>
+            <ThemedText style={styles.investmentLabel}>Your Investment</ThemedText>
+            <ThemedText style={styles.investmentAmount}>{investment}</ThemedText>
+          </View>
           
-          <View style={styles.actionButtons}>
-            <TouchableOpacity style={styles.actionButton}>
-              <Ionicons name="add-circle-outline" size={24} color="#fff" />
-              <ThemedText style={styles.actionButtonText}>Top Up</ThemedText>
-            </TouchableOpacity>
-            
-            <TouchableOpacity style={styles.actionButton}>
-              <Ionicons name="arrow-down-circle-outline" size={24} color="#fff" />
-              <ThemedText style={styles.actionButtonText}>Withdraw</ThemedText>
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        {/* Discover Section */}
-        <View style={styles.discoverSection}>
-          <View style={styles.sectionHeader}>
-            <ThemedText style={styles.sectionTitle}>Discover Small Business</ThemedText>
-            <TouchableOpacity>
-              <ThemedText style={styles.viewAll}>View All</ThemedText>
-            </TouchableOpacity>
-          </View>
-
-          {/* Categories */}
-          <ScrollView 
-            horizontal 
-            showsHorizontalScrollIndicator={false}
-            style={styles.categoriesContainer}
-          >
-            {categories.map((category) => (
-              <TouchableOpacity 
-                key={category.id}
-                style={[
-                  styles.categoryButton,
-                  selectedCategory === category.id && styles.activeCategoryButton
-                ]}
-                onPress={() => setSelectedCategory(category.id)}
-              >
-                {category.icon && (
-                  <Ionicons 
-                    name={category.icon} 
-                    size={16} 
-                    color={selectedCategory === category.id ? "#fff" : "#7C3AED"} 
-                  />
-                )}
-                <ThemedText 
-                  style={[
-                    styles.categoryText,
-                    selectedCategory === category.id && styles.activeCategoryText
-                  ]}
-                >
-                  {category.name}
-                </ThemedText>
+          {/* Empty space for bottom sheet */}
+          <View style={styles.bottomSheetPlaceholder} />
+        </ScrollView>
+        
+        {/* Bottom Sheet */}
+        <BottomSheet
+          ref={bottomSheetRef}
+          index={0}
+          snapPoints={snapPoints}
+          onChange={handleSheetChanges}
+          handleIndicatorStyle={styles.bottomSheetIndicator}
+          handleStyle={styles.bottomSheetHandle}
+          backgroundStyle={styles.bottomSheetBackground}
+          enableContentPanningGesture={true}
+          enableHandlePanningGesture={true}
+          keyboardBehavior="extend"
+          android_keyboardInputMode="adjustResize"
+          enableOverDrag={false}
+          enablePanDownToClose={false}
+          animateOnMount
+          onAnimate={handleAnimate}
+        >
+          <View style={styles.bottomSheetHeader}>
+            <View style={styles.sectionHeader}>
+              <ThemedText style={styles.sectionTitle}>Discover Small Business</ThemedText>
+              <TouchableOpacity>
+                <ThemedText style={styles.viewAll}>View All</ThemedText>
               </TouchableOpacity>
-            ))}
-          </ScrollView>
-
-          {/* Business Cards */}
-          <View style={styles.businessCards}>
-            {businessList.map((business) => (
-              <View key={business.id} style={styles.businessCard}>
-                <View style={styles.businessImageContainer}>
-                  <Image 
-                    source={business.image} 
-                    style={styles.businessImage} 
-                    resizeMode="cover"
-                  />
-                  <TouchableOpacity 
-                    style={styles.favoriteButton}
-                    onPress={() => toggleFavorite(business.id)}
-                  >
+            </View>
+            
+            {/* Categories */}
+            <ScrollView 
+              horizontal 
+              showsHorizontalScrollIndicator={false}
+              style={styles.categoriesContainer}
+            >
+              {categories.map((category) => (
+                <TouchableOpacity 
+                  key={category.id}
+                  style={[
+                    styles.categoryButton,
+                    selectedCategory === category.id && styles.activeCategoryButton
+                  ]}
+                  onPress={() => setSelectedCategory(category.id)}
+                >
+                  {category.icon && (
                     <Ionicons 
-                      name={business.favorite ? "heart" : "heart-outline"} 
-                      size={20} 
-                      color={business.favorite ? "#f00" : "#fff"} 
+                      name={category.icon} 
+                      size={16} 
+                      color={selectedCategory === category.id ? "#fff" : PRIMARY_COLOR} 
                     />
-                  </TouchableOpacity>
-                </View>
-                
-                <View style={styles.businessInfo}>
-                  <ThemedText style={styles.businessName}>{business.name}</ThemedText>
-                  <ThemedText style={styles.businessDescription}>{business.description}</ThemedText>
-                </View>
-                
-                <View style={styles.progressContainer}>
-                  <View style={styles.progressBar}>
-                    <View 
-                      style={[styles.progressFill, { width: `${business.progress * 100}%` }]} 
-                    />
-                  </View>
-                </View>
-                
-                <View style={styles.businessFooter}>
-                  <ThemedText style={styles.businessAmount}>
-                    ${business.amount.toLocaleString()}
+                  )}
+                  <ThemedText 
+                    style={[
+                      styles.categoryText,
+                      selectedCategory === category.id && styles.activeCategoryText
+                    ]}
+                  >
+                    {category.name}
                   </ThemedText>
-                  <ThemedText style={styles.daysLeft}>
-                    {business.daysLeft} days left
-                  </ThemedText>
-                </View>
-              </View>
-            ))}
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
           </View>
-        </View>
-      </ScrollView>
-    </SafeAreaView>
+          
+          {/* Scrollable content inside bottom sheet */}
+          <BottomSheetScrollView contentContainerStyle={styles.businessCardsContainer}>
+            {/* Business Cards */}
+            <View style={styles.businessCards}>
+              {loading ? (
+                <ThemedText style={styles.loadingText}>Loading...</ThemedText>
+              ) : error ? (
+                <ThemedText style={styles.errorText}>{error}</ThemedText>
+              ) : (
+                businessList.map((business) => (
+                  <View key={business._id} style={styles.businessCard}>
+                    <View style={styles.businessImageContainer}>
+                      <Image 
+                        source={{ uri: business.image }}
+                        style={styles.businessImage} 
+                        resizeMode="cover"
+                      />
+                      <TouchableOpacity 
+                        style={styles.favoriteButton}
+                        onPress={() => handleToggleFavorite(business._id)}
+                      >
+                        <Ionicons 
+                          name={business.favorite ? "heart" : "heart-outline"} 
+                          size={20} 
+                          color={business.favorite ? "#f00" : "#fff"} 
+                        />
+                      </TouchableOpacity>
+                    </View>
+                    
+                    <View style={styles.businessInfo}>
+                      <ThemedText style={styles.businessName}>{business.name}</ThemedText>
+                      <ThemedText style={styles.businessDescription}>{business.description}</ThemedText>
+                    </View>
+                    
+                    <View style={styles.progressContainer}>
+                      <View style={styles.progressBar}>
+                        <View 
+                          style={[styles.progressFill, { width: `${business.progress * 100}%` }]} 
+                        />
+                      </View>
+                    </View>
+                    
+                    <View style={styles.businessFooter}>
+                      <ThemedText style={styles.businessAmount}>
+                        ${business.amount.toLocaleString()}
+                      </ThemedText>
+                      <ThemedText style={styles.daysLeft}>
+                        {business.daysLeft} days left
+                      </ThemedText>
+                    </View>
+                  </View>
+                ))
+              )}
+            </View>
+          </BottomSheetScrollView>
+        </BottomSheet>
+      </SafeAreaView>
+    </GestureHandlerRootView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#14142B',
+    backgroundColor: PRIMARY_COLOR,
   },
   header: {
     flexDirection: 'row',
@@ -268,7 +379,7 @@ const styles = StyleSheet.create({
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#22223A',
+    backgroundColor: '#2A4A70',
     borderRadius: 20,
     marginHorizontal: 20,
     paddingHorizontal: 15,
@@ -283,46 +394,47 @@ const styles = StyleSheet.create({
     color: '#fff',
   },
   investmentCard: {
-    backgroundColor: '#6C5DD3',
+    backgroundColor: ACCENT_COLOR,
     borderRadius: 20,
     padding: 20,
     marginHorizontal: 20,
     marginBottom: 20,
     alignItems: 'center',
+    minHeight: 160,
   },
   investmentLabel: {
     color: '#ffffff',
-    fontSize: 18,
+    fontSize: 16,
+    marginBottom: 15,
   },
   investmentAmount: {
     color: '#ffffff',
-    fontSize: 36,
+    fontSize: 32,
     fontWeight: 'bold',
-    marginVertical: 10,
-  },
-  actionButtons: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    marginVertical: 15,
+    textAlign: 'center',
     width: '100%',
-    marginTop: 10,
+    paddingHorizontal: 10,
+    lineHeight: 40,
   },
-  actionButton: {
-    backgroundColor: '#322987',
-    borderRadius: 20,
-    paddingVertical: 12,
-    paddingHorizontal: 25,
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 0.48,
-    justifyContent: 'center',
+  bottomSheetPlaceholder: {
+    height: height * 0.4, // 40% of screen height for placeholder
   },
-  actionButtonText: {
-    color: '#ffffff',
-    marginLeft: 5,
-    fontWeight: '500',
+  bottomSheetBackground: {
+    backgroundColor: '#fff',
   },
-  discoverSection: {
+  bottomSheetHandle: {
+    paddingVertical: 10,
+  },
+  bottomSheetIndicator: {
+    backgroundColor: '#ddd',
+    width: 40,
+    height: 5,
+  },
+  bottomSheetHeader: {
     paddingHorizontal: 20,
+    paddingTop: 10,
+    paddingBottom: 10,
   },
   sectionHeader: {
     flexDirection: 'row',
@@ -331,12 +443,12 @@ const styles = StyleSheet.create({
     marginBottom: 15,
   },
   sectionTitle: {
-    color: '#ffffff',
+    color: PRIMARY_COLOR,
     fontSize: 18,
     fontWeight: 'bold',
   },
   viewAll: {
-    color: '#aaa',
+    color: '#666',
     fontSize: 14,
   },
   categoriesContainer: {
@@ -350,27 +462,36 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: '#7C3AED',
+    borderColor: PRIMARY_COLOR,
     marginRight: 10,
   },
   activeCategoryButton: {
-    backgroundColor: '#7C3AED',
+    backgroundColor: PRIMARY_COLOR,
   },
   categoryText: {
-    color: '#7C3AED',
+    color: PRIMARY_COLOR,
     marginLeft: 5,
   },
   activeCategoryText: {
     color: '#ffffff',
   },
+  businessCardsContainer: {
+    paddingHorizontal: 20,
+    paddingBottom: 30,
+  },
   businessCards: {
     marginBottom: 20,
   },
   businessCard: {
-    backgroundColor: '#22223A',
+    backgroundColor: '#fff',
     borderRadius: 15,
     overflow: 'hidden',
     marginBottom: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
   },
   businessImageContainer: {
     position: 'relative',
@@ -395,13 +516,13 @@ const styles = StyleSheet.create({
     padding: 15,
   },
   businessName: {
-    color: '#ffffff',
+    color: PRIMARY_COLOR,
     fontSize: 18,
     fontWeight: 'bold',
     marginBottom: 5,
   },
   businessDescription: {
-    color: '#aaa',
+    color: '#666',
     fontSize: 14,
     marginBottom: 10,
   },
@@ -411,13 +532,12 @@ const styles = StyleSheet.create({
   },
   progressBar: {
     height: 8,
-    backgroundColor: '#333',
+    backgroundColor: '#f0f0f0',
     borderRadius: 4,
-    overflow: 'hidden',
   },
   progressFill: {
     height: '100%',
-    backgroundColor: '#7C3AED',
+    backgroundColor: PRIMARY_COLOR,
   },
   businessFooter: {
     flexDirection: 'row',
@@ -426,12 +546,24 @@ const styles = StyleSheet.create({
     paddingBottom: 15,
   },
   businessAmount: {
-    color: '#7C3AED',
+    color: PRIMARY_COLOR,
     fontSize: 18,
     fontWeight: 'bold',
   },
   daysLeft: {
-    color: '#aaa',
+    color: '#666',
     fontSize: 14,
+  },
+  loadingText: {
+    color: '#666',
+    textAlign: 'center',
+    fontSize: 16,
+    marginTop: 20,
+  },
+  errorText: {
+    color: '#f00',
+    textAlign: 'center',
+    fontSize: 16,
+    marginTop: 20,
   },
 });

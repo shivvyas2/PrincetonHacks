@@ -6,6 +6,10 @@ import { TextInput } from 'react-native';
 import { useState } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 
+// App theme colors
+const PRIMARY_COLOR = '#1E3A5F'; // Dark blue as primary color
+const ACCENT_COLOR = '#3A6491'; // Medium blue as accent
+
 export default function SignInScreen() {
   const { signIn, setActive, isLoaded } = useSignIn();
   const [emailAddress, setEmailAddress] = useState('');
@@ -72,7 +76,7 @@ export default function SignInScreen() {
         {/* Email Input */}
         <View style={styles.inputWrapper}>
           <View style={styles.iconContainer}>
-            <Ionicons name="mail-outline" size={20} color="#7C3AED" />
+            <Ionicons name="mail-outline" size={20} color={PRIMARY_COLOR} />
           </View>
           <TextInput
             autoCapitalize="none"
@@ -88,7 +92,7 @@ export default function SignInScreen() {
         {/* Password Input */}
         <View style={styles.inputWrapper}>
           <View style={styles.iconContainer}>
-            <Ionicons name="lock-closed-outline" size={20} color="#7C3AED" />
+            <Ionicons name="lock-closed-outline" size={20} color={PRIMARY_COLOR} />
           </View>
           <TextInput
             value={password}
@@ -105,7 +109,7 @@ export default function SignInScreen() {
             <Ionicons 
               name={passwordVisible ? "eye-off-outline" : "eye-outline"} 
               size={20} 
-              color="#999" 
+              color={PRIMARY_COLOR} 
             />
           </TouchableOpacity>
         </View>
@@ -116,7 +120,7 @@ export default function SignInScreen() {
             style={styles.checkboxContainer} 
             onPress={() => setRememberMe(!rememberMe)}
           >
-            <View style={[styles.checkbox, rememberMe && styles.checkboxChecked]}>
+            <View style={[styles.checkbox, rememberMe && { backgroundColor: PRIMARY_COLOR, borderColor: PRIMARY_COLOR }]}>
               {rememberMe && <Ionicons name="checkmark" size={16} color="#fff" />}
             </View>
             <ThemedText style={styles.rememberText}>Remember me</ThemedText>
@@ -181,7 +185,7 @@ const styles = StyleSheet.create({
   backgroundImage: {
     height: 200,
     width: '100%',
-    backgroundColor: '#7C3AED',
+    backgroundColor: PRIMARY_COLOR,
   },
   logoContainer: {
     flexDirection: 'row',
@@ -254,25 +258,25 @@ const styles = StyleSheet.create({
     height: 22,
     borderRadius: 4,
     borderWidth: 2,
-    borderColor: '#7C3AED',
+    borderColor: PRIMARY_COLOR,
     marginRight: 8,
     justifyContent: 'center',
     alignItems: 'center',
   },
   checkboxChecked: {
-    backgroundColor: '#7C3AED',
-    borderColor: '#7C3AED',
+    backgroundColor: PRIMARY_COLOR,
+    borderColor: PRIMARY_COLOR,
   },
   rememberText: {
     fontSize: 14,
     color: '#666',
   },
   forgotPassword: {
-    color: '#7C3AED',
+    color: PRIMARY_COLOR,
     fontSize: 14,
   },
   loginButton: {
-    backgroundColor: '#7C3AED',
+    backgroundColor: PRIMARY_COLOR,
     borderRadius: 30,
     height: 50,
     justifyContent: 'center',
@@ -296,7 +300,7 @@ const styles = StyleSheet.create({
   },
   linkText: {
     fontSize: 12,
-    color: '#7C3AED',
+    color: ACCENT_COLOR,
     fontWeight: '500',
   },
   termsCheckboxContainer: {
@@ -320,7 +324,7 @@ const styles = StyleSheet.create({
   },
   signUpLink: {
     fontSize: 14,
-    color: '#7C3AED',
+    color: ACCENT_COLOR,
     fontWeight: 'bold',
   },
 });

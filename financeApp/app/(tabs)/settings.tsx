@@ -6,6 +6,10 @@ import { useAuth } from '@clerk/clerk-expo';
 import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+// App theme colors
+const PRIMARY_COLOR = '#1E3A5F'; // Dark blue as primary color
+const ACCENT_COLOR = '#3A6491'; // Medium blue as accent
+
 export default function SettingsScreen() {
   const { signOut } = useAuth();
   const router = useRouter();
@@ -50,141 +54,145 @@ export default function SettingsScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
+      {/* Header with dark blue background */}
       <View style={styles.header}>
         <ThemedText style={styles.headerTitle}>Settings</ThemedText>
       </View>
       
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-        <View style={styles.section}>
-          <ThemedText style={styles.sectionTitle}>Account</ThemedText>
-          
-          <View style={styles.settingsCard}>
-            <TouchableOpacity style={styles.settingsItem}>
-              <View style={styles.settingIconContainer}>
-                <Ionicons name="person-outline" size={22} color="#7C3AED" />
-              </View>
-              <View style={styles.settingContent}>
-                <ThemedText style={styles.settingTitle}>Personal Information</ThemedText>
-              </View>
-              <Ionicons name="chevron-forward" size={20} color="#A4A4B8" />
-            </TouchableOpacity>
+        {/* White background section with rounded corners */}
+        <View style={styles.whiteSection}>
+          <View style={styles.section}>
+            <ThemedText style={styles.sectionTitle}>Account</ThemedText>
             
-            <View style={styles.divider} />
-            
-            <TouchableOpacity style={styles.settingsItem}>
-              <View style={styles.settingIconContainer}>
-                <Ionicons name="card-outline" size={22} color="#7C3AED" />
-              </View>
-              <View style={styles.settingContent}>
-                <ThemedText style={styles.settingTitle}>Payment Methods</ThemedText>
-              </View>
-              <Ionicons name="chevron-forward" size={20} color="#A4A4B8" />
-            </TouchableOpacity>
-            
-            <View style={styles.divider} />
-            
-            <TouchableOpacity style={styles.settingsItem}>
-              <View style={styles.settingIconContainer}>
-                <Ionicons name="lock-closed-outline" size={22} color="#7C3AED" />
-              </View>
-              <View style={styles.settingContent}>
-                <ThemedText style={styles.settingTitle}>Security</ThemedText>
-              </View>
-              <Ionicons name="chevron-forward" size={20} color="#A4A4B8" />
-            </TouchableOpacity>
-          </View>
-        </View>
-        
-        <View style={styles.section}>
-          <ThemedText style={styles.sectionTitle}>Preferences</ThemedText>
-          
-          <View style={styles.settingsCard}>
-            <View style={styles.settingsItem}>
-              <View style={styles.settingIconContainer}>
-                <Ionicons name="notifications-outline" size={22} color="#7C3AED" />
-              </View>
-              <View style={styles.settingContent}>
-                <ThemedText style={styles.settingTitle}>Notifications</ThemedText>
-              </View>
-              <Switch
-                value={notificationsEnabled}
-                onValueChange={setNotificationsEnabled}
-                trackColor={{ false: '#333', true: '#7C3AED' }}
-                thumbColor="#fff"
-              />
-            </View>
-            
-            <View style={styles.divider} />
-            
-            <View style={styles.settingsItem}>
-              <View style={styles.settingIconContainer}>
-                <Ionicons name="moon-outline" size={22} color="#7C3AED" />
-              </View>
-              <View style={styles.settingContent}>
-                <ThemedText style={styles.settingTitle}>Dark Mode</ThemedText>
-              </View>
-              <Switch
-                value={darkModeEnabled}
-                onValueChange={setDarkModeEnabled}
-                trackColor={{ false: '#333', true: '#7C3AED' }}
-                thumbColor="#fff"
-              />
-            </View>
-            
-            <View style={styles.divider} />
-            
-            <View style={styles.settingsItem}>
-              <View style={styles.settingIconContainer}>
-                <Ionicons name="finger-print-outline" size={22} color="#7C3AED" />
-              </View>
-              <View style={styles.settingContent}>
-                <ThemedText style={styles.settingTitle}>Biometric Authentication</ThemedText>
-              </View>
-              <Switch
-                value={biometricsEnabled}
-                onValueChange={setBiometricsEnabled}
-                trackColor={{ false: '#333', true: '#7C3AED' }}
-                thumbColor="#fff"
-              />
+            <View style={styles.settingsCard}>
+              <TouchableOpacity style={styles.settingsItem}>
+                <View style={styles.settingIconContainer}>
+                  <Ionicons name="person-outline" size={22} color={PRIMARY_COLOR} />
+                </View>
+                <View style={styles.settingContent}>
+                  <ThemedText style={styles.settingTitle}>Personal Information</ThemedText>
+                </View>
+                <Ionicons name="chevron-forward" size={20} color="#A4A4B8" />
+              </TouchableOpacity>
+              
+              <View style={styles.divider} />
+              
+              <TouchableOpacity style={styles.settingsItem}>
+                <View style={styles.settingIconContainer}>
+                  <Ionicons name="card-outline" size={22} color={PRIMARY_COLOR} />
+                </View>
+                <View style={styles.settingContent}>
+                  <ThemedText style={styles.settingTitle}>Payment Methods</ThemedText>
+                </View>
+                <Ionicons name="chevron-forward" size={20} color="#A4A4B8" />
+              </TouchableOpacity>
+              
+              <View style={styles.divider} />
+              
+              <TouchableOpacity style={styles.settingsItem}>
+                <View style={styles.settingIconContainer}>
+                  <Ionicons name="lock-closed-outline" size={22} color={PRIMARY_COLOR} />
+                </View>
+                <View style={styles.settingContent}>
+                  <ThemedText style={styles.settingTitle}>Security</ThemedText>
+                </View>
+                <Ionicons name="chevron-forward" size={20} color="#A4A4B8" />
+              </TouchableOpacity>
             </View>
           </View>
-        </View>
-        
-        <View style={styles.section}>
-          <ThemedText style={styles.sectionTitle}>About</ThemedText>
           
-          <View style={styles.settingsCard}>
-            <TouchableOpacity style={styles.settingsItem}>
-              <View style={styles.settingIconContainer}>
-                <Ionicons name="information-circle-outline" size={22} color="#7C3AED" />
-              </View>
-              <View style={styles.settingContent}>
-                <ThemedText style={styles.settingTitle}>About Impact Invest</ThemedText>
-              </View>
-              <Ionicons name="chevron-forward" size={20} color="#A4A4B8" />
-            </TouchableOpacity>
+          <View style={styles.section}>
+            <ThemedText style={styles.sectionTitle}>Preferences</ThemedText>
             
-            <View style={styles.divider} />
-            
-            <TouchableOpacity style={styles.settingsItem}>
-              <View style={styles.settingIconContainer}>
-                <Ionicons name="help-circle-outline" size={22} color="#7C3AED" />
+            <View style={styles.settingsCard}>
+              <View style={styles.settingsItem}>
+                <View style={styles.settingIconContainer}>
+                  <Ionicons name="notifications-outline" size={22} color={PRIMARY_COLOR} />
+                </View>
+                <View style={styles.settingContent}>
+                  <ThemedText style={styles.settingTitle}>Notifications</ThemedText>
+                </View>
+                <Switch
+                  value={notificationsEnabled}
+                  onValueChange={setNotificationsEnabled}
+                  trackColor={{ false: '#E5E5E5', true: ACCENT_COLOR }}
+                  thumbColor="#fff"
+                />
               </View>
-              <View style={styles.settingContent}>
-                <ThemedText style={styles.settingTitle}>Help & Support</ThemedText>
+              
+              <View style={styles.divider} />
+              
+              <View style={styles.settingsItem}>
+                <View style={styles.settingIconContainer}>
+                  <Ionicons name="moon-outline" size={22} color={PRIMARY_COLOR} />
+                </View>
+                <View style={styles.settingContent}>
+                  <ThemedText style={styles.settingTitle}>Dark Mode</ThemedText>
+                </View>
+                <Switch
+                  value={darkModeEnabled}
+                  onValueChange={setDarkModeEnabled}
+                  trackColor={{ false: '#E5E5E5', true: ACCENT_COLOR }}
+                  thumbColor="#fff"
+                />
               </View>
-              <Ionicons name="chevron-forward" size={20} color="#A4A4B8" />
-            </TouchableOpacity>
+              
+              <View style={styles.divider} />
+              
+              <View style={styles.settingsItem}>
+                <View style={styles.settingIconContainer}>
+                  <Ionicons name="finger-print-outline" size={22} color={PRIMARY_COLOR} />
+                </View>
+                <View style={styles.settingContent}>
+                  <ThemedText style={styles.settingTitle}>Biometric Authentication</ThemedText>
+                </View>
+                <Switch
+                  value={biometricsEnabled}
+                  onValueChange={setBiometricsEnabled}
+                  trackColor={{ false: '#E5E5E5', true: ACCENT_COLOR }}
+                  thumbColor="#fff"
+                />
+              </View>
+            </View>
           </View>
+          
+          <View style={styles.section}>
+            <ThemedText style={styles.sectionTitle}>About</ThemedText>
+            
+            <View style={styles.settingsCard}>
+              <TouchableOpacity style={styles.settingsItem}>
+                <View style={styles.settingIconContainer}>
+                  <Ionicons name="information-circle-outline" size={22} color={PRIMARY_COLOR} />
+                </View>
+                <View style={styles.settingContent}>
+                  <ThemedText style={styles.settingTitle}>About Impact Invest</ThemedText>
+                </View>
+                <Ionicons name="chevron-forward" size={20} color="#A4A4B8" />
+              </TouchableOpacity>
+              
+              <View style={styles.divider} />
+              
+              <TouchableOpacity style={styles.settingsItem}>
+                <View style={styles.settingIconContainer}>
+                  <Ionicons name="help-circle-outline" size={22} color={PRIMARY_COLOR} />
+                </View>
+                <View style={styles.settingContent}>
+                  <ThemedText style={styles.settingTitle}>Help & Support</ThemedText>
+                </View>
+                <Ionicons name="chevron-forward" size={20} color="#A4A4B8" />
+              </TouchableOpacity>
+            </View>
+          </View>
+          
+          <TouchableOpacity style={styles.signOutButton} onPress={handleSignOut}>
+            <Ionicons name="log-out-outline" size={22} color="#FF3B30" style={styles.signOutIcon} />
+            <ThemedText style={styles.signOutText}>Sign Out</ThemedText>
+          </TouchableOpacity>
+          
+          {/* Add some bottom padding for better scrolling experience */}
+          <View style={styles.bottomPadding} />
         </View>
-        
-        <TouchableOpacity style={styles.signOutButton} onPress={handleSignOut}>
-          <Ionicons name="log-out-outline" size={22} color="#FF3B30" style={styles.signOutIcon} />
-          <ThemedText style={styles.signOutText}>Sign Out</ThemedText>
-        </TouchableOpacity>
-        
-        {/* Add some bottom padding for better scrolling experience */}
-        <View style={styles.bottomPadding} />
       </ScrollView>
     </SafeAreaView>
   );
@@ -193,12 +201,13 @@ export default function SettingsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#14142B',
+    backgroundColor: PRIMARY_COLOR,
   },
   header: {
     paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 15,
+    paddingTop: 60,
+    paddingBottom: 20,
+    backgroundColor: PRIMARY_COLOR,
   },
   headerTitle: {
     fontSize: 24,
@@ -208,6 +217,13 @@ const styles = StyleSheet.create({
   scrollView: {
     flex: 1,
   },
+  whiteSection: {
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 30,
+    borderTopRightRadius: 30,
+    paddingTop: 25,
+    flex: 1,
+  },
   section: {
     marginBottom: 20,
     paddingHorizontal: 20,
@@ -215,14 +231,19 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#A4A4B8',
+    color: PRIMARY_COLOR,
     marginBottom: 10,
     marginLeft: 5,
   },
   settingsCard: {
-    backgroundColor: '#22223A',
+    backgroundColor: '#fff',
     borderRadius: 15,
     overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
   },
   settingsItem: {
     flexDirection: 'row',
@@ -233,7 +254,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: 'rgba(124, 58, 237, 0.1)',
+    backgroundColor: 'rgba(30, 58, 95, 0.1)',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 15,
@@ -243,11 +264,11 @@ const styles = StyleSheet.create({
   },
   settingTitle: {
     fontSize: 16,
-    color: '#ffffff',
+    color: '#333',
   },
   divider: {
     height: 1,
-    backgroundColor: '#333',
+    backgroundColor: '#f0f0f0',
     marginHorizontal: 15,
   },
   signOutButton: {

@@ -5,11 +5,17 @@ import { ThemedText } from '../../components/ThemedText';
 import { useState, useRef } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 
+// App theme colors
+const PRIMARY_COLOR = '#1E3A5F'; // Dark blue as primary color
+const ACCENT_COLOR = '#3A6491'; // Medium blue as accent
+
 export default function SignUpScreen() {
   const { isLoaded, signUp, setActive } = useSignUp();
   const [emailAddress, setEmailAddress] = useState('');
   const [password, setPassword] = useState('');
-  const [fullname, setFullname] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [username, setUsername] = useState('');
   const [pendingVerification, setPendingVerification] = useState(false);
   
   // Code verification state for 6 digits
@@ -27,6 +33,7 @@ export default function SignUpScreen() {
   const input4Ref = useRef<TextInput>(null);
   const input5Ref = useRef<TextInput>(null);
   const input6Ref = useRef<TextInput>(null);
+  const usernameRef = useRef<TextInput>(null);
   
   const router = useRouter();
 
@@ -50,15 +57,16 @@ export default function SignUpScreen() {
       return;
     }
 
+    // Generate a username if not provided
+    const generatedUsername = username || `user_${Math.random().toString(36).substring(2, 10)}`;
+
     try {
-      // Create user with only emailAddress and password, which are both required
+      // Create user with emailAddress, password, and username (required by Clerk)
       await signUp.create({
         emailAddress,
         password,
+        username: generatedUsername,
       });
-
-      // After user is created, then we can update user metadata (if needed)
-      // NOTE: We're no longer using firstName or lastName here
 
       // Prepare email verification
       await signUp.prepareEmailAddressVerification({ strategy: "email_code" });
@@ -81,16 +89,88 @@ export default function SignUpScreen() {
     }
     
     try {
+      console.log("Attempting verification with code:", completeCode);
+      
+      // First, attempt the verification
       const completeSignUp = await signUp.attemptEmailAddressVerification({
         code: completeCode,
       });
-      await setActive({ session: completeSignUp.createdSessionId });
+      
+      console.log("Verification response:", completeSignUp);
+      
+      // Check if verification was successful
+      if (completeSignUp.status === "complete") {
+        // Set the active session
+        console.log("Setting active session with ID:", completeSignUp.createdSessionId);
+        await setActive({ session: completeSignUp.createdSessionId });
+        
+        // Navigate to the home screen
+        router.replace("/(tabs)");
+      } else if (completeSignUp.status === "missing_requirements") {
+        // Handle missing requirements
+        console.log("Missing requirements:", completeSignUp.missingFields);
+        
+        if (completeSignUp.missingFields.includes("username")) {
+          // Generate a random username and update the user
+          const randomUsername = `user_${Math.random().toString(36).substring(2, 10)}`;
+          
+          try {
+            await signUp.update({
+              username: randomUsername,
+            });
+            
+            // Try verification again
+            const updatedSignUp = await signUp.attemptEmailAddressVerification({
+              code: completeCode,
+            });
+            
+            if (updatedSignUp.status === "complete") {
+              await setActive({ session: updatedSignUp.createdSessionId });
+              router.replace("/(tabs)");
+            } else {
+              Alert.alert(
+                "Verification Issue", 
+                "Your email was verified, but there was an issue completing your profile. Please try signing in."
+              );
+              router.replace("/auth/sign-in");
+            }
+          } catch (updateErr: any) {
+            console.error("Error updating username:", updateErr);
+            Alert.alert("Update Error", updateErr.message);
+          }
+        } else {
+          Alert.alert(
+            "Additional Information Required", 
+            `Please complete your profile: ${completeSignUp.missingFields.join(", ")}`
+          );
+        }
+      } else {
+        console.log("Verification not complete:", completeSignUp.status);
+        Alert.alert("Verification Error", "Verification was not completed successfully. Please try again.");
+      }
     } catch (err: any) {
-      console.error('Error:', err.message);
+      console.error('Error during verification:', err.message);
+      
+      // If the error is that verification has already been completed,
+      // we can still proceed to the home screen
+      if (err.message.includes("already been verified")) {
+        console.log("Verification was already completed, proceeding to home screen");
+        
+        // Simply navigate to the home screen
+        // The user is likely already verified and can sign in normally
+        router.replace("/auth/sign-in");
+        Alert.alert(
+          "Account Already Verified", 
+          "Your account has already been verified. Please sign in with your credentials.",
+          [{ text: "OK" }]
+        );
+        return;
+      }
+      
       Alert.alert("Verification Error", err.message);
     }
   };
-  
+
   const resendCode = async () => {
     if (!isLoaded) return;
     
@@ -128,29 +208,73 @@ export default function SignUpScreen() {
           </View>
 
           <View style={styles.form}>
-            <TextInput
-              value={fullname}
-              placeholder="Full name"
-              onChangeText={setFullname}
-              style={styles.input}
-            />
+            <View style={styles.inputWrapper}>
+              <View style={styles.iconContainer}>
+                <Ionicons name="person-outline" size={20} color={PRIMARY_COLOR} />
+              </View>
+              <TextInput
+                value={firstName}
+                placeholder="First Name"
+                placeholderTextColor="#999"
+                onChangeText={setFirstName}
+                style={styles.input}
+              />
+            </View>
             
-            <TextInput
-              autoCapitalize="none"
-              value={emailAddress}
-              placeholder="Email address"
-              onChangeText={setEmailAddress}
-              style={styles.input}
-              keyboardType="email-address"
-            />
+            <View style={styles.inputWrapper}>
+              <View style={styles.iconContainer}>
+                <Ionicons name="person-outline" size={20} color={PRIMARY_COLOR} />
+              </View>
+              <TextInput
+                value={lastName}
+                placeholder="Last Name"
+                placeholderTextColor="#999"
+                onChangeText={setLastName}
+                style={styles.input}
+              />
+            </View>
             
-            <TextInput
-              value={password}
-              placeholder="Password (8+ chars, include A-Z, a-z, 0-9)"
-              secureTextEntry
-              onChangeText={setPassword}
-              style={styles.input}
-            />
+            <View style={styles.inputWrapper}>
+              <View style={styles.iconContainer}>
+                <Ionicons name="mail-outline" size={20} color={PRIMARY_COLOR} />
+              </View>
+              <TextInput
+                autoCapitalize="none"
+                value={emailAddress}
+                placeholder="Email Address"
+                placeholderTextColor="#999"
+                onChangeText={setEmailAddress}
+                style={styles.input}
+                keyboardType="email-address"
+              />
+            </View>
+            
+            <View style={styles.inputWrapper}>
+              <View style={styles.iconContainer}>
+                <Ionicons name="lock-closed-outline" size={20} color={PRIMARY_COLOR} />
+              </View>
+              <TextInput
+                value={password}
+                placeholder="Password (8+ chars, include A-Z, a-z, 0-9)"
+                secureTextEntry
+                onChangeText={setPassword}
+                style={styles.input}
+              />
+            </View>
+            
+            <View style={styles.inputWrapper}>
+              <View style={styles.iconContainer}>
+                <Ionicons name="person-outline" size={20} color={PRIMARY_COLOR} />
+              </View>
+              <TextInput
+                ref={usernameRef}
+                value={username}
+                placeholder="Username"
+                placeholderTextColor="#999"
+                onChangeText={setUsername}
+                style={styles.input}
+              />
+            </View>
 
             <TouchableOpacity 
               style={styles.button}
@@ -189,7 +313,7 @@ export default function SignUpScreen() {
               style={styles.backButton}
               onPress={() => setPendingVerification(false)}
             >
-              <Ionicons name="arrow-back" size={24} color="#7C3AED" />
+              <Ionicons name="arrow-back" size={24} color={PRIMARY_COLOR} />
             </TouchableOpacity>
             <ThemedText style={styles.headerTitle}>Security Verification</ThemedText>
             <ThemedText style={styles.stepIndicator}>Step 2 / 5</ThemedText>
@@ -211,7 +335,7 @@ export default function SignUpScreen() {
               {/* Email display section */}
               <View style={styles.emailContainer}>
                 <View style={styles.emailIconContainer}>
-                  <Ionicons name="mail-outline" size={24} color="#7C3AED" />
+                  <Ionicons name="mail-outline" size={24} color={PRIMARY_COLOR} />
                 </View>
                 <ThemedText style={styles.emailText}>{emailAddress}</ThemedText>
               </View>
@@ -357,15 +481,30 @@ const styles = StyleSheet.create({
     gap: 16,
     paddingHorizontal: 20,
   },
-  input: {
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    borderRadius: 8,
+  inputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F3F4F6',
+    borderRadius: 12,
     padding: 16,
+    marginBottom: 16,
+  },
+  iconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(124, 58, 237, 0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  input: {
+    flex: 1,
     fontSize: 16,
+    color: '#4B5563',
   },
   button: {
-    backgroundColor: '#7C3AED',
+    backgroundColor: PRIMARY_COLOR,
     padding: 16,
     borderRadius: 8,
     alignItems: 'center',
@@ -386,7 +525,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   link: {
-    color: '#7C3AED',
+    color: ACCENT_COLOR,
     fontSize: 14,
     fontWeight: '600',
   },
@@ -503,7 +642,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#7C3AED',
+    color: PRIMARY_COLOR,
   },
   resendContainer: {
     flexDirection: 'row',
@@ -516,12 +655,12 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   resendLink: {
-    color: '#7C3AED',
+    color: ACCENT_COLOR,
     fontSize: 14,
     fontWeight: 'bold',
   },
   continueButton: {
-    backgroundColor: '#7C3AED',
+    backgroundColor: PRIMARY_COLOR,
     borderRadius: 12,
     height: 56,
     justifyContent: 'center',

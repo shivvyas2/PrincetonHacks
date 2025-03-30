@@ -8,6 +8,9 @@ import { HapticTab } from '@/components/HapticTab';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
 
+// App theme colors
+const PRIMARY_COLOR = '#1E3A5F'; // Dark blue as primary color
+
 export default function TabLayout() {
   const colorScheme = useColorScheme();
   const insets = useSafeAreaInsets();
@@ -16,7 +19,7 @@ export default function TabLayout() {
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: '#7C3AED',
+        tabBarActiveTintColor: PRIMARY_COLOR,
         tabBarInactiveTintColor: '#A4A4B8',
         tabBarStyle: {
           backgroundColor: '#fff',
@@ -71,7 +74,7 @@ export default function TabLayout() {
           tabBarIcon: ({ focused }) => (
             <View style={styles.cameraContainer}>
               <Ionicons
-                name="camera"
+                name="cash"
                 size={28}
                 color="#fff"
                 style={styles.cameraIcon}
@@ -119,7 +122,7 @@ const styles = StyleSheet.create({
     marginTop: -20,
   },
   cameraIcon: {
-    backgroundColor: '#7C3AED',
+    backgroundColor: PRIMARY_COLOR,
     borderRadius: 40,
     padding: 16,
     overflow: 'hidden',

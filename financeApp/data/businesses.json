@@ -1,0 +1,26 @@
+{
+  "businesses": [
+    {
+      "id": "1",
+      "name": "Business 1",
+      "description": "Most sleek and innovative electric cars in the world.",
+      "image": "https://picsum.photos/400/300",
+      "amount": 7250,
+      "daysLeft": 15,
+      "progress": 0.7,
+      "favorite": false,
+      "category": "cafe"
+    },
+    {
+      "id": "2",
+      "name": "Business 2",
+      "description": "Most sleek and innovative tech in the world.",
+      "image": "https://picsum.photos/400/300",
+      "amount": 1330,
+      "daysLeft": 23,
+      "progress": 0.4,
+      "favorite": false,
+      "category": "social"
+    }
+  ]
+} 
