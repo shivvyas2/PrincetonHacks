@@ -167,7 +167,15 @@ export default function PortfolioScreen() {
   const [selectedTimeFilter, setSelectedTimeFilter] = useState('1Y');
   const [businessesWithPhotos, setBusinessesWithPhotos] = useState<Business[]>([...localBusinesses]);
   const [isLoadingPhotos, setIsLoadingPhotos] = useState(true);
-  
+  const [profit, setProfit] = useState(1200); // example profit
+  const [investmentDate, setInvestmentDate] = useState(new Date('2025-01-01'));
+
+  const handleWithdraw = () => {
+    console.log('Withdrawal initiated');
+    // Navigate to withdraw screen or trigger withdrawal process
+    router.push('/(tabs)/withdraw');
+  };
+
   // Load business photos from Unsplash API
   useEffect(() => {
     const loadBusinessPhotos = async () => {
@@ -362,6 +370,18 @@ export default function PortfolioScreen() {
                 </TouchableOpacity>
               ))
             )}
+            
+            <View style={styles.withdrawSection}>
+              <ThemedText style={styles.withdrawSectionTitle}>Performance</ThemedText>
+              <ThemedText style={styles.withdrawProfitText}>Profit: ${profit}</ThemedText>
+              {profit >= 1000 && (new Date().getTime() - investmentDate.getTime()) >= 7776000000 ? (
+                <TouchableOpacity style={styles.withdrawButton} onPress={handleWithdraw}>
+                  <ThemedText style={styles.withdrawButtonText}>Withdraw</ThemedText>
+                </TouchableOpacity>
+              ) : (
+                <ThemedText style={styles.withdrawInfo}>Withdraw available after 3 months lock-in and minimum profit of $1000</ThemedText>
+              )}
+            </View>
           </>
         )}
         
@@ -780,5 +800,37 @@ const styles = StyleSheet.create({
     marginTop: 10,
     color: '#666',
     fontSize: 14,
+  },
+  withdrawSection: {
+    marginTop: 20,
+    padding: 15,
+    backgroundColor: '#fff',
+    borderRadius: 10,
+  },
+  withdrawSectionTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 5,
+  },
+  withdrawProfitText: {
+    fontSize: 16,
+    marginBottom: 10,
+  },
+  withdrawButton: {
+    backgroundColor: '#3A6491',
+    padding: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginTop: 10,
+  },
+  withdrawButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  withdrawInfo: {
+    color: '#A4A4B8',
+    fontSize: 12,
+    marginTop: 10,
   },
 });
