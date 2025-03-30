@@ -1,10 +1,19 @@
 import Constants from 'expo-constants';
 
-// Get the local IP address from Expo's manifest
+const isDevelopment = process.env.NODE_ENV === 'development';
+
+// Get the local IP address from Expo's manifest for development
 const manifestProp = Constants.manifest2?.extra?.expoClient?.hostUri;
 const localIp = manifestProp ? manifestProp.split(':')[0] : '10.29.251.136';
 
+<<<<<<< Updated upstream
 const API_URL = `http://${localIp}:5001/api`;
+=======
+// Use local IP in development, production URL in production
+const API_URL = 'https://finance-app-backend-d3ay.onrender.com/api';
+
+console.log('Using API URL:', API_URL); // Debug log
+>>>>>>> Stashed changes
 
 export const fetchBusinesses = async () => {
   try {
