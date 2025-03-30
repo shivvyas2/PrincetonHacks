@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
-import { View, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity, TextInput, Image, Dimensions } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity, TextInput, Image, Dimensions, ActivityIndicator } from 'react-native';
 import { ThemedText } from '@/components/ThemedText';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { LineChart } from 'react-native-chart-kit';
+import { getBusinessPhotoUrl, isUnsplashApiConfigured } from '@/services/unsplashApi';
 
 // App theme colors
 const PRIMARY_COLOR = '#1E3A5F'; // Dark blue as primary color
@@ -14,59 +15,143 @@ const SECONDARY_COLOR = '#1E3A5F'; // Updated to match theme
 const PROFIT_SHARING_PERCENTAGE = 0.25; // 25% of profits go to investors
 const PROFIT_DISTRIBUTION_THRESHOLD = 1000; // Minimum profit before distribution
 
-// Mock data
+// Define the type for business with photoUrl as string | null
+interface Business {
+  id: number;
+  name: string;
+  location: string;
+  image: any;
+  photoUrl: string | null;
+  investedAmount: number;
+  progress: number;
+  returnAmount: number;
+  returnPercentage: number;
+  date: string;
+  latitude: number;
+  longitude: number;
+}
+
+// Mock data for local businesses
+const localBusinesses: Business[] = [
+  {
+    id: 1,
+    name: "Small World Coffee",
+    location: "Princeton, NJ",
+    image: require("@/assets/images/Center Content.png"),
+    photoUrl: null,
+    investedAmount: 5750,
+    progress: 0.72,
+    returnAmount: 632,
+    returnPercentage: 11.0,
+    date: "February 12, 2025",
+    latitude: 40.3500,
+    longitude: -74.6590
+  },
+  {
+    id: 2,
+    name: "Labyrinth Books",
+    location: "Princeton, NJ",
+    image: require("@/assets/images/Center Content2.png"),
+    photoUrl: null,
+    investedAmount: 7800,
+    progress: 0.98,
+    returnAmount: 975,
+    returnPercentage: 12.5,
+    date: "January 5, 2025",
+    latitude: 40.3507,
+    longitude: -74.6595
+  },
+  {
+    id: 3,
+    name: "Triumph Brewing Company",
+    location: "Princeton, NJ",
+    image: require("@/assets/images/Center Content.png"),
+    photoUrl: null,
+    investedAmount: 6500,
+    progress: 0.81,
+    returnAmount: 845,
+    returnPercentage: 13.0,
+    date: "March 1, 2025",
+    latitude: 40.3505,
+    longitude: -74.6600
+  },
+  {
+    id: 4,
+    name: "Jammin' Crepes",
+    location: "Princeton, NJ",
+    image: require("@/assets/images/Center Content2.png"),
+    photoUrl: null,
+    investedAmount: 4200,
+    progress: 0.53,
+    returnAmount: 378,
+    returnPercentage: 9.0,
+    date: "March 15, 2025",
+    latitude: 40.3510,
+    longitude: -74.6585
+  },
+  {
+    id: 5,
+    name: "Princeton Record Exchange",
+    location: "Princeton, NJ",
+    image: require("@/assets/images/Center Content.png"),
+    photoUrl: null,
+    investedAmount: 8000,
+    progress: 1.0,
+    returnAmount: 1200,
+    returnPercentage: 15.0,
+    date: "December 10, 2024",
+    latitude: 40.3503,
+    longitude: -74.6598
+  },
+  {
+    id: 6,
+    name: "Bent Spoon",
+    location: "Princeton, NJ",
+    image: require("@/assets/images/Center Content2.png"),
+    photoUrl: null,
+    investedAmount: 7250,
+    progress: 0.91,
+    returnAmount: 870,
+    returnPercentage: 12.0,
+    date: "January 20, 2025",
+    latitude: 40.3508,
+    longitude: -74.6592
+  }
+];
+
+// Calculate portfolio totals
+const calculatePortfolioTotals = () => {
+  const totalInvestment = localBusinesses.reduce((sum, business) => sum + business.investedAmount, 0);
+  const totalReturn = localBusinesses.reduce((sum, business) => sum + business.returnAmount, 0);
+  const profitPercentage = (totalReturn / totalInvestment) * 100;
+  
+  return {
+    totalInvestment,
+    totalReturn,
+    profitPercentage: parseFloat(profitPercentage.toFixed(2))
+  };
+};
+
+// Portfolio data
 const portfolioData = {
-  totalInvestment: 12565058,
-  totalProfit: 1890142,
-  profitPercentage: 15.04,
-  projects: [
-    {
-      id: 1,
-      name: "Eco-Friendly Packaging Solutions",
-      image: require("@/assets/images/Center Content.png"),
-      investedAmount: 7250,
-      progress: 0.65,
-      returnAmount: 22342,
-      returnPercentage: 3.4,
-      date: "July 19, 2023, 3:43:55 pm"
-    },
-    {
-      id: 2,
-      name: "Planting Trees for Greener Tomorrow",
-      image: require("@/assets/images/Center Content2.png"),
-      investedAmount: 7250,
-      progress: 0.65,
-      returnAmount: 22342,
-      returnPercentage: 3.4,
-      date: "July 19, 2023, 3:43:55 pm"
-    },
-    {
-      id: 3,
-      name: "Clean Water For All",
-      image: require("@/assets/images/Center Content.png"),
-      investedAmount: 7250,
-      progress: 0.65,
-      returnAmount: 22342,
-      returnPercentage: 3.4,
-      date: "July 19, 2023, 3:43:55 pm"
-    }
-  ],
+  ...calculatePortfolioTotals(),
+  projects: localBusinesses,
   transactions: [
-    { id: 1, projectId: 1, type: "investment", amount: 3021, date: "July 19, 2023" },
-    { id: 2, projectId: 2, type: "withdrawal", amount: 3021, date: "July 19, 2023" },
-    { id: 3, projectId: 3, type: "dividends", amount: 3021, date: "July 19, 2023" }
+    { id: 1, projectId: 1, type: "investment", amount: 5750, date: "February 12, 2025" },
+    { id: 2, projectId: 2, type: "investment", amount: 7800, date: "January 5, 2025" },
+    { id: 3, projectId: 5, type: "dividends", amount: 1200, date: "March 15, 2025" }
   ],
   chartData: {
     labels: ["Jan", "Feb", "Mar", "Apr", "May", "Jun"],
     datasets: [
       {
         data: [
-          10000,
-          25000,
-          15000,
-          30000,
-          45000,
-          60000
+          32000,
+          34500,
+          36000,
+          38000,
+          39500,
+          41000
         ],
         color: (opacity = 1) => `rgba(71, 159, 215, ${opacity})`, // PRIMARY_COLOR with opacity
         strokeWidth: 2
@@ -80,6 +165,44 @@ export default function PortfolioScreen() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState('performance');
   const [selectedTimeFilter, setSelectedTimeFilter] = useState('1Y');
+  const [businessesWithPhotos, setBusinessesWithPhotos] = useState<Business[]>([...localBusinesses]);
+  const [isLoadingPhotos, setIsLoadingPhotos] = useState(true);
+  
+  // Load business photos from Unsplash API
+  useEffect(() => {
+    const loadBusinessPhotos = async () => {
+      try {
+        // Create a copy of businesses to update with photos
+        const updatedBusinesses = [...localBusinesses];
+        
+        // Fetch photos for each business
+        for (let i = 0; i < updatedBusinesses.length; i++) {
+          const business = updatedBusinesses[i];
+          try {
+            // Fetch photo URL from Unsplash API using business name
+            const photoUrl = await getBusinessPhotoUrl(business.name);
+            
+            if (photoUrl) {
+              updatedBusinesses[i] = {
+                ...business,
+                photoUrl
+              };
+            }
+          } catch (error) {
+            console.error(`Error fetching photo for ${business.name}:`, error);
+          }
+        }
+        
+        setBusinessesWithPhotos(updatedBusinesses);
+        setIsLoadingPhotos(false);
+      } catch (error) {
+        console.error('Error loading business photos:', error);
+        setIsLoadingPhotos(false);
+      }
+    };
+    
+    loadBusinessPhotos();
+  }, []);
   
   // Format currency
   const formatCurrency = (amount: number): string => `$${amount.toLocaleString()}`;
@@ -110,15 +233,15 @@ export default function PortfolioScreen() {
     
       {/* Portfolio Summary Card */}
       <View style={styles.summaryCard}>
-        <TouchableOpacity style={styles.dividendsButton}>
-          <ThemedText style={styles.dividendsText}>Dividends</ThemedText>
-          <Ionicons name="chevron-forward" size={20} color="#fff" />
-        </TouchableOpacity>
+      
         
         <View style={styles.totalInvestment}>
-          <ThemedText style={styles.totalInvestmentLabel}>Total Investment (12 Projects)</ThemedText>
+          <ThemedText style={styles.totalInvestmentLabel}>Total Investment ({localBusinesses.length} Projects)</ThemedText>
           <ThemedText style={styles.totalInvestmentValue}>{formatCurrency(portfolioData.totalInvestment)}</ThemedText>
-          <ThemedText style={styles.profitText}>+{formatCurrency(portfolioData.totalProfit)} ({portfolioData.profitPercentage}%)</ThemedText>
+          <View style={styles.profitRow}>
+            <Ionicons name="trending-up" size={20} color="#00C853" />
+            <ThemedText style={styles.profitText}>+{portfolioData.profitPercentage}%</ThemedText>
+          </View>
         </View>
       </View>
       
@@ -197,37 +320,48 @@ export default function PortfolioScreen() {
             </View>
             
             {/* Project List */}
-            {portfolioData.projects.map(project => (
-              <TouchableOpacity 
-                key={project.id} 
-                style={styles.projectItem}
-              >
-                <Image source={project.image} style={styles.projectImage} />
-                <View style={styles.projectInfo}>
-                  <View style={styles.projectNameContainer}>
-                    <ThemedText style={styles.projectName} numberOfLines={1}>{project.name}</ThemedText>
-                    <View style={styles.projectReturn}>
-                      <Ionicons name="trending-up" size={16} color="#00C853" />
-                      <ThemedText style={styles.projectReturnText}>${project.returnAmount.toLocaleString()} (+{project.returnPercentage}%)</ThemedText>
+            {isLoadingPhotos ? (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="large" color={PRIMARY_COLOR} />
+                <ThemedText style={styles.loadingText}>Loading business photos...</ThemedText>
+              </View>
+            ) : (
+              businessesWithPhotos.map((project) => (
+                <TouchableOpacity 
+                  key={project.id} 
+                  style={styles.projectItem}
+                >
+                  <Image 
+                    source={project.photoUrl ? { uri: project.photoUrl } : project.image} 
+                    style={styles.projectImage} 
+                    resizeMode="cover"
+                  />
+                  <View style={styles.projectInfo}>
+                    <View style={styles.projectNameContainer}>
+                      <ThemedText style={styles.projectName} numberOfLines={1}>{project.name}</ThemedText>
+                      <View style={styles.projectReturn}>
+                        <Ionicons name="trending-up" size={16} color="#00C853" />
+                        <ThemedText style={styles.projectReturnText}>${project.returnAmount.toLocaleString()} (+{project.returnPercentage}%)</ThemedText>
+                      </View>
+                    </View>
+                    <View style={styles.projectProgressContainer}>
+                      <View style={styles.projectProgressBar}>
+                        <View 
+                          style={[
+                            styles.projectProgressFill, 
+                            { width: `${project.progress * 100}%` }
+                          ]} 
+                        />
+                      </View>
+                      <View style={styles.projectAmounts}>
+                        <ThemedText style={styles.projectInvestedAmount}>${project.investedAmount.toLocaleString()}</ThemedText>
+                        <ThemedText style={styles.projectProgressPercentage}>{project.progress * 100}%</ThemedText>
+                      </View>
                     </View>
                   </View>
-                  <View style={styles.projectProgressContainer}>
-                    <View style={styles.projectProgressBar}>
-                      <View 
-                        style={[
-                          styles.projectProgressFill, 
-                          { width: `${project.progress * 100}%` }
-                        ]} 
-                      />
-                    </View>
-                    <View style={styles.projectAmounts}>
-                      <ThemedText style={styles.projectInvestedAmount}>${project.investedAmount.toLocaleString()}</ThemedText>
-                      <ThemedText style={styles.projectProgressPercentage}>{project.progress * 100}%</ThemedText>
-                    </View>
-                  </View>
-                </View>
-              </TouchableOpacity>
-            ))}
+                </TouchableOpacity>
+              ))
+            )}
           </>
         )}
         
@@ -308,7 +442,7 @@ export default function PortfolioScreen() {
               
               <View style={styles.analyticsCard}>
                 <ThemedText style={styles.analyticsTitle}>Your Profit Share</ThemedText>
-                <ThemedText style={styles.analyticsValue}>${(portfolioData.totalProfit * PROFIT_SHARING_PERCENTAGE).toLocaleString()}</ThemedText>
+                <ThemedText style={styles.analyticsValue}>${(portfolioData.totalReturn * PROFIT_SHARING_PERCENTAGE).toLocaleString()}</ThemedText>
                 <ThemedText style={styles.analyticsSubtitle}>Total profit share received</ThemedText>
               </View>
             </View>
@@ -358,10 +492,15 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginTop: 5,
   },
+  profitRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 5,
+  },
   profitText: {
     color: '#4CAF50',
     fontSize: 14,
-    marginTop: 5,
+    marginLeft: 5,
   },
   tabsContainer: {
     flexDirection: 'row',
@@ -631,5 +770,15 @@ const styles = StyleSheet.create({
     color: '#666',
     fontStyle: 'italic',
     marginTop: 5,
+  },
+  loadingContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 20,
+  },
+  loadingText: {
+    marginTop: 10,
+    color: '#666',
+    fontSize: 14,
   },
 });

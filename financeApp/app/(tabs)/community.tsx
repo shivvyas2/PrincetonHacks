@@ -3,8 +3,10 @@ import { View, StyleSheet, Text, Dimensions, TouchableOpacity, Image, ScrollView
 import MapView, { Marker } from 'react-native-maps';
 import * as Location from 'expo-location';
 import { Ionicons } from '@expo/vector-icons';
-import { ThemedText } from '@/components/ThemedText';
+import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { ThemedText } from '@/components/ThemedText';
+import BusinessStoryModal from '@/components/BusinessStoryModal';
 
 // App theme colors
 const PRIMARY_COLOR = '#1E3A5F'; // Dark blue as primary color
@@ -183,7 +185,10 @@ export default function CommunityScreen() {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [selectedBusiness, setSelectedBusiness] = useState<Business | Investor | null>(null);
   const [isBusinessOwner, setIsBusinessOwner] = useState(false);
+  const [modalVisible, setModalVisible] = useState(false);
+  const [selectedBusinessForModal, setSelectedBusinessForModal] = useState<Business | Investor | null>(null);
   const mapRef = useRef<MapView>(null);
+  const router = useRouter();
 
   // Load business owner status
   useEffect(() => {
@@ -246,6 +251,13 @@ export default function CommunityScreen() {
       latitudeDelta: 0.01,
       longitudeDelta: 0.01
     }, 500);
+  };
+
+  // Navigate to business story page
+  const navigateToBusinessStory = (item: Business | Investor) => {
+    console.log('Opening business story modal for:', item.name);
+    setSelectedBusinessForModal(item);
+    setModalVisible(true);
   };
 
   // Render funding information based on item type
@@ -385,6 +397,8 @@ export default function CommunityScreen() {
                   selectedBusiness?.id === item.id && styles.selectedBusinessCard
                 ]}
                 onPress={() => centerMapOnItem(item)}
+                onLongPress={() => navigateToBusinessStory(item)}
+                delayLongPress={500}
               >
                 <Image source={{ uri: item.imageUrl }} style={styles.businessImage} />
                 <View style={styles.businessCardContent}>
@@ -399,7 +413,10 @@ export default function CommunityScreen() {
                   
                   {renderFundingInfo(item)}
                   
-                  <TouchableOpacity style={styles.viewButton}>
+                  <TouchableOpacity 
+                    style={styles.viewButton}
+                    onPress={() => navigateToBusinessStory(item)}
+                  >
                     <ThemedText style={styles.viewButtonText}>View Profile</ThemedText>
                   </TouchableOpacity>
                 </View>
@@ -431,6 +448,8 @@ export default function CommunityScreen() {
                     selectedBusiness?.id === item.id && styles.selectedBusinessCard
                   ]}
                   onPress={() => centerMapOnItem(item)}
+                  onLongPress={() => navigateToBusinessStory(item)}
+                  delayLongPress={500}
                 >
                   <Image source={{ uri: item.imageUrl }} style={styles.businessImage} />
                   <View style={styles.businessCardContent}>
@@ -445,8 +464,13 @@ export default function CommunityScreen() {
                     
                     {renderFundingInfo(item)}
                     
-                    <TouchableOpacity style={styles.viewButton}>
-                      <ThemedText style={styles.viewButtonText}>View Business</ThemedText>
+                    <TouchableOpacity 
+                      style={styles.viewButton}
+                      onPress={() => navigateToBusinessStory(item)}
+                    >
+                      <ThemedText style={styles.viewButtonText}>
+                        {isBusinessOwner ? "View Profile" : "View Business"}
+                      </ThemedText>
                     </TouchableOpacity>
                   </View>
                 </TouchableOpacity>
@@ -455,6 +479,16 @@ export default function CommunityScreen() {
           </>
         )}
       </View>
+      
+      {/* Business Story Modal */}
+      {selectedBusinessForModal && (
+        <BusinessStoryModal
+          visible={modalVisible}
+          onClose={() => setModalVisible(false)}
+          businessId={selectedBusinessForModal.id}
+          businessName={selectedBusinessForModal.name}
+        />
+      )}
     </View>
   );
 }

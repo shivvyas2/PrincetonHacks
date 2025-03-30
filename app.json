@@ -1,0 +1,12 @@
+{
+  "expo": {
+    "extra": {
+      "eas": {
+        "projectId": "7ecf6221-0e07-4d84-bf1a-fc12af442230"
+      }
+    },
+    "android": {
+      "package": "com.shivvyas.princetonhacks"
+    }
+  }
+}
