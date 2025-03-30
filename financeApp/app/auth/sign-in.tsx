@@ -1,10 +1,10 @@
-import { View, StyleSheet, TouchableOpacity, ImageBackground, Alert, KeyboardAvoidingView, ScrollView, Platform } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, ImageBackground, Alert, KeyboardAvoidingView, ScrollView, Platform, Image, Text } from 'react-native';
 import { useSignIn } from '@clerk/clerk-expo';
 import { Stack, useRouter } from 'expo-router';
-import { ThemedText } from '../../components/ThemedText';
 import { TextInput } from 'react-native';
 import { useState } from 'react';
 import { Ionicons } from '@expo/vector-icons';
+import { ThemedText } from '@/components/ThemedText';
 
 // App theme colors
 const PRIMARY_COLOR = '#1E3A5F'; // Dark blue as primary color
@@ -56,8 +56,11 @@ export default function SignInScreen() {
       >
         {/* Logo */}
         <View style={styles.logoContainer}>
-          <Ionicons name="leaf" size={28} color="#fff" style={styles.logoIcon} />
-          <ThemedText style={styles.logoText}>Auramax</ThemedText>
+          <Image 
+            source={require('../../assets/images/logo.png')}
+            style={styles.logoImage}
+            resizeMode="contain"
+          />
         </View>
       </ImageBackground>
       
@@ -68,10 +71,10 @@ export default function SignInScreen() {
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
-        <ThemedText style={styles.title}>Sign In</ThemedText>
-        <ThemedText style={styles.subtitle}>
+        <Text style={styles.title}>Sign In</Text>
+        <Text style={styles.subtitle}>
           Let's get started! Create your Impact Invest account to begin your journey toward impactful investing.
-        </ThemedText>
+        </Text>
         
         {/* Email Input */}
         <View style={styles.inputWrapper}>
@@ -127,7 +130,7 @@ export default function SignInScreen() {
           </TouchableOpacity>
           
           <TouchableOpacity>
-            <ThemedText style={styles.forgotPassword}>Forgot Password?</ThemedText>
+            <Text style={styles.forgotPassword}>Forgot Password?</Text>
           </TouchableOpacity>
         </View>
         
@@ -136,20 +139,20 @@ export default function SignInScreen() {
           style={styles.loginButton}
           onPress={onSignInPress}
         >
-          <ThemedText style={styles.loginButtonText}>Login</ThemedText>
+          <Text style={styles.loginButtonText}>Login</Text>
         </TouchableOpacity>
         
         {/* Terms of Service */}
         <View style={styles.termsContainer}>
-          <ThemedText style={styles.termsText}>By sign in, you agree to our </ThemedText>
+          <Text style={styles.termsText}>By sign in, you agree to our </Text>
           <TouchableOpacity>
-            <ThemedText style={styles.linkText}>Terms of Service</ThemedText>
+            <Text style={styles.linkText}>Terms of Service</Text>
           </TouchableOpacity>
-          <ThemedText style={styles.termsText}> & </ThemedText>
+          <Text style={styles.termsText}> & </Text>
           <TouchableOpacity>
-            <ThemedText style={styles.linkText}>Privacy Policy</ThemedText>
+            <Text style={styles.linkText}>Privacy Policy</Text>
           </TouchableOpacity>
-          <ThemedText style={styles.termsText}>. We take your data security seriously.</ThemedText>
+          <Text style={styles.termsText}>. We take your data security seriously.</Text>
         </View>
         
         {/* Terms Checkbox */}
@@ -164,9 +167,9 @@ export default function SignInScreen() {
         
         {/* Sign Up Link */}
         <View style={styles.signUpContainer}>
-          <ThemedText style={styles.signUpText}>Don't have an account? </ThemedText>
+          <Text style={styles.signUpText}>Don't have an account? </Text>
           <TouchableOpacity onPress={() => router.replace('/auth/sign-up')}>
-            <ThemedText style={styles.signUpLink}>Sign Up</ThemedText>
+            <Text style={styles.signUpLink}>Sign Up</Text>
           </TouchableOpacity>
         </View>
 
@@ -183,23 +186,18 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
   },
   backgroundImage: {
-    height: 200,
     width: '100%',
+    height: '35%',
     backgroundColor: PRIMARY_COLOR,
   },
   logoContainer: {
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 60,
   },
-  logoIcon: {
-    marginRight: 10,
-  },
-  logoText: {
-    color: '#fff',
-    fontSize: 24,
-    fontWeight: 'bold',
+  logoImage: {
+    width: 100,
+    height: 100,
   },
   formContainer: {
     flex: 1,
@@ -207,19 +205,20 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 30,
     borderTopRightRadius: 30,
     marginTop: -30,
-    paddingHorizontal: 24,
+    paddingHorizontal: 20,
     paddingTop: 30,
   },
   title: {
-    fontSize: 24,
+    fontSize: 28,
     fontWeight: 'bold',
+    color: PRIMARY_COLOR,
     marginBottom: 10,
-    color: '#000000',
   },
   subtitle: {
+    fontSize: 16,
     color: '#666',
     marginBottom: 30,
-    lineHeight: 22,
+    lineHeight: 24,
   },
   inputWrapper: {
     flexDirection: 'row',
@@ -235,6 +234,10 @@ const styles = StyleSheet.create({
     width: 40,
     alignItems: 'center',
   },
+  icon: {
+    width: 20,
+    height: 20,
+  },
   input: {
     flex: 1,
     height: '100%',
@@ -242,6 +245,10 @@ const styles = StyleSheet.create({
   },
   eyeIcon: {
     padding: 10,
+  },
+  eyeIconImage: {
+    width: 20,
+    height: 20,
   },
   rememberForgotContainer: {
     flexDirection: 'row',
@@ -266,6 +273,10 @@ const styles = StyleSheet.create({
   checkboxChecked: {
     backgroundColor: PRIMARY_COLOR,
     borderColor: PRIMARY_COLOR,
+  },
+  checkmarkIcon: {
+    width: 16,
+    height: 16,
   },
   rememberText: {
     fontSize: 14,
@@ -328,3 +339,4 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
 });
+

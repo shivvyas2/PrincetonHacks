@@ -11,6 +11,25 @@ const API_URL = 'https://finance-app-backend-d3ay.onrender.com/api';
 
 console.log('Using API URL:', API_URL); // Debug log
 
+// Capital One Nessie API Configuration
+export const NESSIE_API = {
+  // Use environment variable or fallback to a development key (not for production)
+  API_KEY: process.env.EXPO_PUBLIC_NESSIE_API_KEY || '96b45e9eab7b490204cf47db1fe5e2d5',
+  BASE_URL: 'http://api.nessieisreal.com',
+  
+  // For testing - set to true to use mock API response instead of real API
+  USE_MOCK_API: true
+};
+
+// Export a function to check if API keys are properly configured
+export const validateApiConfig = (): boolean => {
+  if (!NESSIE_API.API_KEY) {
+    console.warn('Missing Nessie API Key. Please add EXPO_PUBLIC_NESSIE_API_KEY to your .env file');
+    return false;
+  }
+  return true;
+};
+
 // Helper function to add auth headers to requests
 const addAuthHeaders = (userId: string | null) => {
   const headers: HeadersInit = {

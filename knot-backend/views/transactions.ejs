@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>View Transactions</title>
+</head>
+<body>
+  <h1>View Transactions</h1>
+  <div id="transactions-container">
+    <% if (transactions && transactions.length > 0) { %>
+      <ul>
+        <% transactions.forEach(function(transaction) { %>
+          <li>
+            <p>Amount: <%= transaction.amount %></p>
+            <p>Date: <%= transaction.date %></p>
+            <p>Description: <%= transaction.description %></p>
+          </li>
+        <% }); %>
+      </ul>
+    <% } else { %>
+      <p>No transactions found.</p>
+    <% } %>
+  </div>
+</body>
+</html> 

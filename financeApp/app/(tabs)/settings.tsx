@@ -1,7 +1,7 @@
 import { View, StyleSheet, SafeAreaView, TouchableOpacity, Switch, Alert, ScrollView } from 'react-native';
 import { ThemedText } from '@/components/ThemedText';
 import { Ionicons } from '@expo/vector-icons';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '@clerk/clerk-expo';
 import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -14,8 +14,42 @@ export default function SettingsScreen() {
   const { signOut } = useAuth();
   const router = useRouter();
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
-  const [darkModeEnabled, setDarkModeEnabled] = useState(true);
-  const [biometricsEnabled, setBiometricsEnabled] = useState(false);
+  const [isBusinessOwner, setIsBusinessOwner] = useState(false);
+
+  // Load user preferences when component mounts
+  useEffect(() => {
+    const loadUserPreferences = async () => {
+      try {
+        const storedIsBusinessOwner = await AsyncStorage.getItem('isBusinessOwner');
+        if (storedIsBusinessOwner !== null) {
+          setIsBusinessOwner(storedIsBusinessOwner === 'true');
+        }
+      } catch (error) {
+        console.error('Error loading user preferences:', error);
+      }
+    };
+
+    loadUserPreferences();
+  }, []);
+
+  // Save business owner status when it changes
+  const handleBusinessOwnerToggle = async (value: boolean) => {
+    setIsBusinessOwner(value);
+    try {
+      await AsyncStorage.setItem('isBusinessOwner', value.toString());
+      
+      // Show feedback to the user about the mode change
+      Alert.alert(
+        value ? "Business Owner Mode Activated" : "Investor Mode Activated",
+        value 
+          ? "You'll now see the app from a business owner's perspective." 
+          : "You'll now see the app from an investor's perspective.",
+        [{ text: "OK" }]
+      );
+    } catch (error) {
+      console.error('Error saving business owner status:', error);
+    }
+  };
 
   const handleSignOut = async () => {
     Alert.alert(
@@ -66,7 +100,10 @@ export default function SettingsScreen() {
             <ThemedText style={styles.sectionTitle}>Account</ThemedText>
             
             <View style={styles.settingsCard}>
-              <TouchableOpacity style={styles.settingsItem}>
+              <TouchableOpacity 
+                style={styles.settingsItem}
+                onPress={() => router.push('/(stack)/settings/personal-info')}
+              >
                 <View style={styles.settingIconContainer}>
                   <Ionicons name="person-outline" size={22} color={PRIMARY_COLOR} />
                 </View>
@@ -84,18 +121,6 @@ export default function SettingsScreen() {
                 </View>
                 <View style={styles.settingContent}>
                   <ThemedText style={styles.settingTitle}>Payment Methods</ThemedText>
-                </View>
-                <Ionicons name="chevron-forward" size={20} color="#A4A4B8" />
-              </TouchableOpacity>
-              
-              <View style={styles.divider} />
-              
-              <TouchableOpacity style={styles.settingsItem}>
-                <View style={styles.settingIconContainer}>
-                  <Ionicons name="lock-closed-outline" size={22} color={PRIMARY_COLOR} />
-                </View>
-                <View style={styles.settingContent}>
-                  <ThemedText style={styles.settingTitle}>Security</ThemedText>
                 </View>
                 <Ionicons name="chevron-forward" size={20} color="#A4A4B8" />
               </TouchableOpacity>
@@ -125,63 +150,23 @@ export default function SettingsScreen() {
               
               <View style={styles.settingsItem}>
                 <View style={styles.settingIconContainer}>
-                  <Ionicons name="moon-outline" size={22} color={PRIMARY_COLOR} />
+                  <Ionicons name="business-outline" size={22} color={PRIMARY_COLOR} />
                 </View>
                 <View style={styles.settingContent}>
-                  <ThemedText style={styles.settingTitle}>Dark Mode</ThemedText>
+                  <ThemedText style={styles.settingTitle}>Business Owner Mode</ThemedText>
+                  <ThemedText style={styles.settingDescription}>
+                    {isBusinessOwner 
+                      ? "View the app as a business owner" 
+                      : "View the app as an investor"}
+                  </ThemedText>
                 </View>
                 <Switch
-                  value={darkModeEnabled}
-                  onValueChange={setDarkModeEnabled}
+                  value={isBusinessOwner}
+                  onValueChange={handleBusinessOwnerToggle}
                   trackColor={{ false: '#E5E5E5', true: ACCENT_COLOR }}
                   thumbColor="#fff"
                 />
               </View>
-              
-              <View style={styles.divider} />
-              
-              <View style={styles.settingsItem}>
-                <View style={styles.settingIconContainer}>
-                  <Ionicons name="finger-print-outline" size={22} color={PRIMARY_COLOR} />
-                </View>
-                <View style={styles.settingContent}>
-                  <ThemedText style={styles.settingTitle}>Biometric Authentication</ThemedText>
-                </View>
-                <Switch
-                  value={biometricsEnabled}
-                  onValueChange={setBiometricsEnabled}
-                  trackColor={{ false: '#E5E5E5', true: ACCENT_COLOR }}
-                  thumbColor="#fff"
-                />
-              </View>
-            </View>
-          </View>
-          
-          <View style={styles.section}>
-            <ThemedText style={styles.sectionTitle}>About</ThemedText>
-            
-            <View style={styles.settingsCard}>
-              <TouchableOpacity style={styles.settingsItem}>
-                <View style={styles.settingIconContainer}>
-                  <Ionicons name="information-circle-outline" size={22} color={PRIMARY_COLOR} />
-                </View>
-                <View style={styles.settingContent}>
-                  <ThemedText style={styles.settingTitle}>About Impact Invest</ThemedText>
-                </View>
-                <Ionicons name="chevron-forward" size={20} color="#A4A4B8" />
-              </TouchableOpacity>
-              
-              <View style={styles.divider} />
-              
-              <TouchableOpacity style={styles.settingsItem}>
-                <View style={styles.settingIconContainer}>
-                  <Ionicons name="help-circle-outline" size={22} color={PRIMARY_COLOR} />
-                </View>
-                <View style={styles.settingContent}>
-                  <ThemedText style={styles.settingTitle}>Help & Support</ThemedText>
-                </View>
-                <Ionicons name="chevron-forward" size={20} color="#A4A4B8" />
-              </TouchableOpacity>
             </View>
           </View>
           
@@ -266,6 +251,10 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#333',
   },
+  settingDescription: {
+    fontSize: 14,
+    color: '#666',
+  },
   divider: {
     height: 1,
     backgroundColor: '#f0f0f0',
@@ -279,7 +268,7 @@ const styles = StyleSheet.create({
     marginVertical: 30,
     backgroundColor: 'rgba(255, 59, 48, 0.1)',
     borderRadius: 10,
-    padding: 15,
+    padding: 25,
   },
   signOutIcon: {
     marginRight: 10,
@@ -293,3 +282,4 @@ const styles = StyleSheet.create({
     height: 40,
   },
 });
+

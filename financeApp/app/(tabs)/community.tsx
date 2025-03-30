@@ -1,76 +1,212 @@
-import { useState, useEffect, useRef } from 'react';
-import { View, StyleSheet, SafeAreaView, TouchableOpacity, Dimensions, Image, Text, ScrollView } from 'react-native';
-import { ThemedText } from '@/components/ThemedText';
+import React, { useState, useEffect, useRef } from 'react';
+import { View, StyleSheet, Text, Dimensions, TouchableOpacity, Image, ScrollView, ActivityIndicator, TextInput } from 'react-native';
 import MapView, { Marker } from 'react-native-maps';
-import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
+import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { ThemedText } from '@/components/ThemedText';
+import BusinessStoryModal from '@/components/BusinessStoryModal';
 
 // App theme colors
 const PRIMARY_COLOR = '#1E3A5F'; // Dark blue as primary color
 const ACCENT_COLOR = '#3A6491'; // Medium blue as accent
 
-// Screen dimensions
+// Get screen dimensions
 const { width, height } = Dimensions.get('window');
 
+// Define types for our data
+type Business = {
+  id: string;
+  name: string;
+  description: string;
+  category: string;
+  imageUrl: string;
+  rating: number;
+  reviews: number;
+  latitude: number;
+  longitude: number;
+  fundingGoal: number;
+  fundingRaised: number;
+  impact: string;
+};
+
+type Investor = {
+  id: string;
+  name: string;
+  description: string;
+  category: string;
+  imageUrl: string;
+  rating: number;
+  reviews: number;
+  latitude: number;
+  longitude: number;
+  investmentTotal: number;
+  investmentCount: number;
+  interests: string;
+};
+
 // Mock data for nearby businesses
-const nearbyBusinesses = [
+const mockBusinesses: Business[] = [
   {
     id: '1',
-    name: 'Green Leaf Cafe',
-    description: 'A sustainable cafe serving organic coffee and locally sourced food.',
-    category: 'Cafe',
-    rating: 4.8,
-    distance: '0.3 mi',
-    latitude: 40.3573,
-    longitude: -74.6672,
-    image: 'https://images.unsplash.com/photo-1554118811-1e0d58224f24?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxzZWFyY2h8M3x8Y2FmZXxlbnwwfHwwfHw%3D&auto=format&fit=crop&w=500&q=60',
+    name: 'Green Earth Cafe',
+    description: 'Sustainable coffee shop using locally sourced ingredients',
+    category: 'Food & Beverage',
+    imageUrl: 'https://images.unsplash.com/photo-1554118811-1e0d58224f24?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxzZWFyY2h8M3x8Y2FmZXxlbnwwfHwwfHw%3D&auto=format&fit=crop&w=500&q=60',
+    rating: 4.7,
+    reviews: 128,
+    latitude: 40.7128,
+    longitude: -74.0060,
+    fundingGoal: 50000,
+    fundingRaised: 32500,
+    impact: 'Reduces carbon footprint by 30% compared to traditional cafes'
   },
   {
     id: '2',
-    name: 'Community Support Center',
-    description: 'A non-profit organization providing resources and support for local communities.',
-    category: 'Social Welfare',
-    rating: 4.6,
-    distance: '0.7 mi',
-    latitude: 40.3593,
-    longitude: -74.6652,
-    image: 'https://images.unsplash.com/photo-1577896851231-70ef18881754?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxzZWFyY2h8Nnx8Y29tbXVuaXR5JTIwY2VudGVyfGVufDB8fDB8fA%3D%3D&auto=format&fit=crop&w=500&q=60',
+    name: 'Tech Innovators',
+    description: 'Startup focused on affordable tech education for underserved communities',
+    category: 'Education',
+    imageUrl: 'https://images.unsplash.com/photo-1581092921461-39b9d08a9b21?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxzZWFyY2h8MTB8fHRlY2h8ZW58MHx8MHx8&auto=format&fit=crop&w=500&q=60',
+    rating: 4.9,
+    reviews: 85,
+    latitude: 40.7138,
+    longitude: -74.0070,
+    fundingGoal: 75000,
+    fundingRaised: 45000,
+    impact: 'Provided tech education to over 500 students from low-income backgrounds'
   },
   {
     id: '3',
-    name: 'Tech Startup Hub',
-    description: 'A collaborative workspace for tech entrepreneurs and startups.',
-    category: 'Technology',
-    rating: 4.9,
-    distance: '1.2 mi',
-    latitude: 40.3553,
-    longitude: -74.6692,
-    image: 'https://images.unsplash.com/photo-1497215842964-222b430dc094?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxzZWFyY2h8Mnx8b2ZmaWNlJTIwc3BhY2V8ZW58MHx8MHx8&auto=format&fit=crop&w=500&q=60',
+    name: 'Eco Threads',
+    description: 'Sustainable clothing store using recycled materials and ethical manufacturing',
+    category: 'Retail',
+    imageUrl: 'https://images.unsplash.com/photo-1567401893414-76b7b1e5a7a5?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxzZWFyY2h8Mnx8Y2xvdGhpbmclMjBzdG9yZXxlbnwwfHwwfHw%3D&auto=format&fit=crop&w=500&q=60',
+    rating: 4.5,
+    reviews: 64,
+    latitude: 40.7148,
+    longitude: -74.0080,
+    fundingGoal: 60000,
+    fundingRaised: 42000,
+    impact: 'Diverted 5 tons of textile waste from landfills in the past year'
   },
   {
     id: '4',
-    name: 'Local Artisan Market',
-    description: 'A marketplace featuring handcrafted goods from local artisans.',
-    category: 'Retail',
-    rating: 4.7,
-    distance: '0.9 mi',
-    latitude: 40.3613,
-    longitude: -74.6662,
-    image: 'https://images.unsplash.com/photo-1513519245088-0e12902e5a38?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxzZWFyY2h8NXx8bWFya2V0fGVufDB8fDB8fA%3D%3D&auto=format&fit=crop&w=500&q=60',
+    name: 'Community Health Clinic',
+    description: 'Affordable healthcare services for underserved populations',
+    category: 'Healthcare',
+    imageUrl: 'https://images.unsplash.com/photo-1516574187841-cb9cc2ca948b?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxzZWFyY2h8Mnx8Y2xpbmljfGVufDB8fDB8fA%3D%3D&auto=format&fit=crop&w=500&q=60',
+    rating: 4.8,
+    reviews: 156,
+    latitude: 40.7158,
+    longitude: -74.0090,
+    fundingGoal: 100000,
+    fundingRaised: 78000,
+    impact: 'Provided healthcare services to over 2,000 uninsured patients'
   },
+  {
+    id: '5',
+    name: 'Urban Farms',
+    description: 'Community-based agriculture in urban settings, providing fresh produce to food deserts',
+    category: 'Agriculture',
+    imageUrl: 'https://images.unsplash.com/photo-1530836369250-ef72a3f5cda8?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxzZWFyY2h8Mnx8dXJiYW4lMjBmYXJtfGVufDB8fDB8fA%3D%3D&auto=format&fit=crop&w=500&q=60',
+    rating: 4.6,
+    reviews: 92,
+    latitude: 40.7168,
+    longitude: -74.0100,
+    fundingGoal: 45000,
+    fundingRaised: 30000,
+    impact: 'Produced 10,000 pounds of fresh produce for local food banks'
+  }
+];
+
+// Mock data for nearby investors
+const mockInvestors: Investor[] = [
+  {
+    id: '1',
+    name: 'Impact Ventures',
+    description: 'Angel investor focused on sustainable businesses',
+    category: 'Angel Investor',
+    imageUrl: 'https://images.unsplash.com/photo-1560250097-0b93528c311a?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxzZWFyY2h8Mnx8YnVzaW5lc3NtYW58ZW58MHx8MHx8&auto=format&fit=crop&w=500&q=60',
+    rating: 4.9,
+    reviews: 42,
+    latitude: 40.7128,
+    longitude: -74.0060,
+    investmentTotal: 750000,
+    investmentCount: 15,
+    interests: 'Sustainability, Clean Energy, Social Impact'
+  },
+  {
+    id: '2',
+    name: 'Green Future Fund',
+    description: 'VC firm specializing in eco-friendly startups',
+    category: 'Venture Capital',
+    imageUrl: 'https://images.unsplash.com/photo-1573497491765-dccce02b29df?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxzZWFyY2h8Mnx8YnVzaW5lc3N3b21hbnxlbnwwfHwwfHw%3D&auto=format&fit=crop&w=500&q=60',
+    rating: 4.8,
+    reviews: 36,
+    latitude: 40.7138,
+    longitude: -74.0070,
+    investmentTotal: 1200000,
+    investmentCount: 8,
+    interests: 'Renewable Energy, Sustainable Agriculture, Green Tech'
+  },
+  {
+    id: '3',
+    name: 'Community First Capital',
+    description: 'Investment group focused on local community businesses',
+    category: 'Community Investment',
+    imageUrl: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxzZWFyY2h8OHx8YnVzaW5lc3NtYW58ZW58MHx8MHx8&auto=format&fit=crop&w=500&q=60',
+    rating: 4.7,
+    reviews: 29,
+    latitude: 40.7148,
+    longitude: -74.0080,
+    investmentTotal: 500000,
+    investmentCount: 12,
+    interests: 'Local Businesses, Community Development, Small Business'
+  },
+  {
+    id: '4',
+    name: 'Ethical Growth Partners',
+    description: 'Investment firm focusing on ethical and sustainable businesses',
+    category: 'Ethical Investment',
+    imageUrl: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxzZWFyY2h8NXx8YnVzaW5lc3N3b21hbnxlbnwwfHwwfHw%3D&auto=format&fit=crop&w=500&q=60',
+    rating: 4.6,
+    reviews: 31,
+    latitude: 40.7158,
+    longitude: -74.0090,
+    investmentTotal: 900000,
+    investmentCount: 10,
+    interests: 'Ethical Business, Fair Trade, Social Enterprise'
+  }
 ];
 
 export default function CommunityScreen() {
   const [location, setLocation] = useState<Location.LocationObject | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const [selectedBusiness, setSelectedBusiness] = useState<string | null>(null);
-  const [mapRegion, setMapRegion] = useState({
-    latitude: 40.3573, // Princeton University coordinates as default
-    longitude: -74.6672,
-    latitudeDelta: 0.0222,
-    longitudeDelta: 0.0121,
-  });
+  const [selectedBusiness, setSelectedBusiness] = useState<Business | Investor | null>(null);
+  const [isBusinessOwner, setIsBusinessOwner] = useState(false);
+  const [modalVisible, setModalVisible] = useState(false);
+  const [selectedBusinessForModal, setSelectedBusinessForModal] = useState<Business | Investor | null>(null);
+  const mapRef = useRef<MapView>(null);
+  const router = useRouter();
 
+  // Load business owner status
+  useEffect(() => {
+    const loadBusinessOwnerStatus = async () => {
+      try {
+        const storedIsBusinessOwner = await AsyncStorage.getItem('isBusinessOwner');
+        if (storedIsBusinessOwner !== null) {
+          setIsBusinessOwner(storedIsBusinessOwner === 'true');
+        }
+      } catch (error) {
+        console.error('Error loading business owner status:', error);
+      }
+    };
+
+    loadBusinessOwnerStatus();
+  }, []);
+
+  // Get current location
   useEffect(() => {
     (async () => {
       let { status } = await Location.requestForegroundPermissionsAsync();
@@ -82,107 +218,278 @@ export default function CommunityScreen() {
       try {
         let location = await Location.getCurrentPositionAsync({});
         setLocation(location);
-        setMapRegion({
-          latitude: location.coords.latitude,
-          longitude: location.coords.longitude,
-          latitudeDelta: 0.0222,
-          longitudeDelta: 0.0121,
-        });
       } catch (error) {
-        console.error('Error getting location:', error);
-        setErrorMsg('Could not get your location. Using default location.');
+        setErrorMsg('Could not get your location');
+        // Use a default location (New York City)
+        setLocation({
+          coords: {
+            latitude: 40.7128,
+            longitude: -74.0060,
+            altitude: null,
+            accuracy: null,
+            altitudeAccuracy: null,
+            heading: null,
+            speed: null
+          },
+          timestamp: Date.now()
+        });
       }
     })();
   }, []);
 
-  const handleMarkerPress = (businessId: string) => {
-    setSelectedBusiness(businessId);
+  // Get the data based on user role
+  const getData = () => {
+    return isBusinessOwner ? mockInvestors : mockBusinesses;
   };
 
-  const handleBusinessCardPress = (businessId: string) => {
-    setSelectedBusiness(businessId);
-    
-    // Find the business and center the map on it
-    const business = nearbyBusinesses.find(b => b.id === businessId);
-    if (business) {
-      setMapRegion({
-        latitude: business.latitude,
-        longitude: business.longitude,
-        latitudeDelta: 0.0122,
-        longitudeDelta: 0.0061,
-      });
+  // Center map on selected item
+  const centerMapOnItem = (item: Business | Investor) => {
+    setSelectedBusiness(item);
+    mapRef.current?.animateToRegion({
+      latitude: item.latitude,
+      longitude: item.longitude,
+      latitudeDelta: 0.01,
+      longitudeDelta: 0.01
+    }, 500);
+  };
+
+  // Navigate to business story page
+  const navigateToBusinessStory = (item: Business | Investor) => {
+    console.log('Opening business story modal for:', item.name);
+    setSelectedBusinessForModal(item);
+    setModalVisible(true);
+  };
+
+  // Render funding information based on item type
+  const renderFundingInfo = (item: Business | Investor) => {
+    if (isBusinessOwner) {
+      // It's an investor
+      const investor = item as Investor;
+      return (
+        <View style={styles.investorStats}>
+          <View style={styles.statRow}>
+            <Ionicons name="cash-outline" size={16} color={PRIMARY_COLOR} />
+            <ThemedText style={styles.investorStatsText}>
+              ${(investor.investmentTotal / 1000).toFixed(0)}K invested
+            </ThemedText>
+          </View>
+          <View style={styles.statRow}>
+            <Ionicons name="business-outline" size={16} color={PRIMARY_COLOR} />
+            <ThemedText style={styles.investorStatsText}>
+              {investor.investmentCount} businesses funded
+            </ThemedText>
+          </View>
+          <View style={styles.statRow}>
+            <Ionicons name="heart-outline" size={16} color={PRIMARY_COLOR} />
+            <ThemedText style={styles.investorStatsText}>
+              Interests: {investor.interests}
+            </ThemedText>
+          </View>
+        </View>
+      );
+    } else {
+      // It's a business
+      const business = item as Business;
+      return (
+        <View style={styles.fundingProgress}>
+          <View style={styles.progressBarContainer}>
+            <View 
+              style={[
+                styles.progressBar, 
+                { width: `${(business.fundingRaised / business.fundingGoal) * 100}%` }
+              ]} 
+            />
+          </View>
+          <View style={styles.fundingDetails}>
+            <ThemedText style={styles.fundingText}>
+              ${(business.fundingRaised / 1000).toFixed(0)}K raised
+            </ThemedText>
+            <ThemedText style={styles.fundingText}>
+              ${(business.fundingGoal / 1000).toFixed(0)}K goal
+            </ThemedText>
+          </View>
+          <ThemedText style={styles.impactText}>
+            Impact: {business.impact}
+          </ThemedText>
+        </View>
+      );
     }
   };
 
-  return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <ThemedText style={styles.title}>Community</ThemedText>
-        <ThemedText style={styles.subtitle}>Discover nearby small businesses</ThemedText>
+  // Render loading state
+  if (!location) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={PRIMARY_COLOR} />
+        <ThemedText style={styles.loadingText}>
+          {errorMsg || 'Loading map...'}
+        </ThemedText>
       </View>
-      
-      {/* Map View - Takes top half of screen */}
+    );
+  }
+
+  return (
+    <View style={styles.container}>
+      {/* Map View */}
       <View style={styles.mapContainer}>
         <MapView
+          ref={mapRef}
           style={styles.map}
-          region={mapRegion}
-          showsUserLocation={true}
+          initialRegion={{
+            latitude: location.coords.latitude,
+            longitude: location.coords.longitude,
+            latitudeDelta: 0.02,
+            longitudeDelta: 0.02,
+          }}
         >
-          {nearbyBusinesses.map((business) => (
+          {/* User location marker */}
+          <Marker
+            coordinate={{
+              latitude: location.coords.latitude,
+              longitude: location.coords.longitude,
+            }}
+            title="You are here"
+            pinColor="#2196F3"
+          />
+          
+          {/* Business/Investor markers */}
+          {getData().map((item) => (
             <Marker
-              key={business.id}
+              key={item.id}
               coordinate={{
-                latitude: business.latitude,
-                longitude: business.longitude,
+                latitude: item.latitude,
+                longitude: item.longitude,
               }}
-              title={business.name}
-              description={business.category}
-              onPress={() => handleMarkerPress(business.id)}
-              pinColor={selectedBusiness === business.id ? PRIMARY_COLOR : '#FF5A5F'}
+              title={item.name}
+              description={item.description}
+              pinColor={PRIMARY_COLOR}
+              onPress={() => setSelectedBusiness(item)}
             />
           ))}
         </MapView>
       </View>
       
-      {/* Business Listings - Takes bottom half of screen */}
+      {/* Business/Investor List */}
       <View style={styles.businessListContainer}>
         <View style={styles.businessListHeader}>
-          <ThemedText style={styles.sectionTitle}>Nearby Small Businesses</ThemedText>
+          <ThemedText style={styles.businessListTitle}>
+            {isBusinessOwner ? "Nearby Investors" : "Nearby Small Businesses"}
+          </ThemedText>
+          <ThemedText style={styles.businessListSubtitle}>
+            {isBusinessOwner 
+              ? "Find potential investors in your area" 
+              : "Discover and support local businesses"}
+          </ThemedText>
         </View>
         
-        <ScrollView 
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.businessCards}
-        >
-          {nearbyBusinesses.map((business) => (
-            <TouchableOpacity
-              key={business.id}
-              style={[
-                styles.businessCard,
-                selectedBusiness === business.id && styles.selectedBusinessCard
-              ]}
-              onPress={() => handleBusinessCardPress(business.id)}
-            >
-              <Image source={{ uri: business.image }} style={styles.businessImage} />
-              <View style={styles.businessInfo}>
-                <ThemedText style={styles.businessName}>{business.name}</ThemedText>
-                <View style={styles.businessMeta}>
-                  <View style={styles.categoryBadge}>
-                    <Text style={styles.categoryText}>{business.category}</Text>
-                  </View>
+        {isBusinessOwner ? (
+          // Business Owner View - Just show investors without search
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.businessCardsContainer}
+          >
+            {getData().map((item) => (
+              <TouchableOpacity
+                key={item.id}
+                style={[
+                  styles.businessCard,
+                  selectedBusiness?.id === item.id && styles.selectedBusinessCard
+                ]}
+                onPress={() => centerMapOnItem(item)}
+                onLongPress={() => navigateToBusinessStory(item)}
+                delayLongPress={500}
+              >
+                <Image source={{ uri: item.imageUrl }} style={styles.businessImage} />
+                <View style={styles.businessCardContent}>
+                  <ThemedText style={styles.businessName}>{item.name}</ThemedText>
+                  <ThemedText style={styles.businessCategory}>{item.category}</ThemedText>
+                  
                   <View style={styles.ratingContainer}>
-                    <Ionicons name="star" size={12} color="#FFD700" />
-                    <Text style={styles.ratingText}>{business.rating}</Text>
+                    <Ionicons name="star" size={16} color="#FFD700" />
+                    <ThemedText style={styles.ratingText}>{item.rating}</ThemedText>
+                    <ThemedText style={styles.reviewCount}>({item.reviews} reviews)</ThemedText>
                   </View>
+                  
+                  {renderFundingInfo(item)}
+                  
+                  <TouchableOpacity 
+                    style={styles.viewButton}
+                    onPress={() => navigateToBusinessStory(item)}
+                  >
+                    <ThemedText style={styles.viewButtonText}>View Profile</ThemedText>
+                  </TouchableOpacity>
                 </View>
-                <Text style={styles.distanceText}>{business.distance}</Text>
-              </View>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        ) : (
+          // Investor View - Show businesses with search
+          <>
+            <View style={styles.searchContainer}>
+              <Ionicons name="search" size={20} color="#999" style={styles.searchIcon} />
+              <TextInput
+                style={styles.searchInput}
+                placeholder="Search businesses..."
+                placeholderTextColor="#999"
+              />
+            </View>
+            
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.businessCardsContainer}
+            >
+              {getData().map((item) => (
+                <TouchableOpacity
+                  key={item.id}
+                  style={[
+                    styles.businessCard,
+                    selectedBusiness?.id === item.id && styles.selectedBusinessCard
+                  ]}
+                  onPress={() => centerMapOnItem(item)}
+                  onLongPress={() => navigateToBusinessStory(item)}
+                  delayLongPress={500}
+                >
+                  <Image source={{ uri: item.imageUrl }} style={styles.businessImage} />
+                  <View style={styles.businessCardContent}>
+                    <ThemedText style={styles.businessName}>{item.name}</ThemedText>
+                    <ThemedText style={styles.businessCategory}>{item.category}</ThemedText>
+                    
+                    <View style={styles.ratingContainer}>
+                      <Ionicons name="star" size={16} color="#FFD700" />
+                      <ThemedText style={styles.ratingText}>{item.rating}</ThemedText>
+                      <ThemedText style={styles.reviewCount}>({item.reviews} reviews)</ThemedText>
+                    </View>
+                    
+                    {renderFundingInfo(item)}
+                    
+                    <TouchableOpacity 
+                      style={styles.viewButton}
+                      onPress={() => navigateToBusinessStory(item)}
+                    >
+                      <ThemedText style={styles.viewButtonText}>
+                        {isBusinessOwner ? "View Profile" : "View Business"}
+                      </ThemedText>
+                    </TouchableOpacity>
+                  </View>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </>
+        )}
       </View>
-    </SafeAreaView>
+      
+      {/* Business Story Modal */}
+      {selectedBusinessForModal && (
+        <BusinessStoryModal
+          visible={modalVisible}
+          onClose={() => setModalVisible(false)}
+          businessId={selectedBusinessForModal.id}
+          businessName={selectedBusinessForModal.name}
+        />
+      )}
+    </View>
   );
 }
 
@@ -191,21 +498,16 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: PRIMARY_COLOR,
   },
-  header: {
-    paddingHorizontal: 20,
-    paddingTop: 10,
-    paddingBottom: 10,
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#fff',
   },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#ffffff',
-  },
-  subtitle: {
+  loadingText: {
+    marginTop: 10,
     fontSize: 16,
-    color: '#ffffff',
-    opacity: 0.8,
-    marginTop: 5,
+    color: PRIMARY_COLOR,
   },
   mapContainer: {
     height: height * 0.4, // 40% of screen height for map
@@ -218,83 +520,153 @@ const styles = StyleSheet.create({
   businessListContainer: {
     flex: 1, // Takes remaining space (approximately 50% with header)
     backgroundColor: '#ffffff',
-    borderTopLeftRadius: 10,
-    borderTopRightRadius: 10,
-    paddingTop: 15,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    marginTop: -20,
+    paddingTop: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -3 },
+    shadowOpacity: 0.1,
+    shadowRadius: 5,
+    elevation: 5,
   },
   businessListHeader: {
     paddingHorizontal: 20,
-    marginBottom: 10,
+    marginBottom: 15,
   },
-  sectionTitle: {
-    fontSize: 16,
+  businessListTitle: {
+    fontSize: 20,
     fontWeight: 'bold',
-    color: PRIMARY_COLOR,
+    color: '#333',
+    marginBottom: 5,
   },
-  businessCards: {
-    paddingHorizontal: 20,
+  businessListSubtitle: {
+    fontSize: 14,
+    color: '#666',
+  },
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F5F5F5',
+    borderRadius: 10,
+    marginHorizontal: 20,
+    marginBottom: 15,
+    paddingHorizontal: 10,
+    height: 40,
+  },
+  searchIcon: {
+    marginRight: 10,
+  },
+  searchInput: {
+    flex: 1,
+    height: 40,
+    fontSize: 14,
+    color: '#333',
+  },
+  businessCardsContainer: {
+    paddingHorizontal: 15,
     paddingBottom: 20,
   },
   businessCard: {
-    width: 200,
-    backgroundColor: '#ffffff',
+    width: 280,
+    backgroundColor: '#fff',
     borderRadius: 12,
-    marginRight: 12,
+    marginHorizontal: 8,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
+    shadowRadius: 4,
+    elevation: 3,
     overflow: 'hidden',
   },
   selectedBusinessCard: {
-    borderWidth: 1.5,
     borderColor: PRIMARY_COLOR,
+    borderWidth: 2,
   },
   businessImage: {
     width: '100%',
-    height: 100,
+    height: 140,
     resizeMode: 'cover',
   },
-  businessInfo: {
-    padding: 10,
+  businessCardContent: {
+    padding: 15,
   },
   businessName: {
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: 'bold',
-    color: PRIMARY_COLOR,
-    marginBottom: 4,
+    color: '#333',
   },
-  businessMeta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 4,
-  },
-  categoryBadge: {
-    backgroundColor: ACCENT_COLOR,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 8,
-    marginRight: 6,
-  },
-  categoryText: {
-    color: '#ffffff',
-    fontSize: 10,
-    fontWeight: '500',
+  businessCategory: {
+    fontSize: 14,
+    color: '#666',
+    marginTop: 2,
   },
   ratingContainer: {
     flexDirection: 'row',
     alignItems: 'center',
+    marginTop: 8,
   },
   ratingText: {
+    fontSize: 14,
     color: '#333',
-    fontSize: 10,
-    marginLeft: 2,
+    marginLeft: 4,
   },
-  distanceText: {
+  reviewCount: {
+    fontSize: 12,
     color: '#666',
-    fontSize: 10,
+    marginLeft: 4,
+  },
+  investorStats: {
+    marginTop: 12,
+  },
+  statRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  investorStatsText: {
+    fontSize: 12,
+    color: '#666',
+    marginLeft: 8,
+  },
+  fundingProgress: {
+    marginTop: 12,
+  },
+  progressBarContainer: {
+    height: 6,
+    backgroundColor: '#E0E0E0',
+    borderRadius: 3,
+    overflow: 'hidden',
+  },
+  progressBar: {
+    height: '100%',
+    backgroundColor: PRIMARY_COLOR,
+  },
+  fundingDetails: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     marginTop: 4,
   },
+  fundingText: {
+    fontSize: 12,
+    color: '#666',
+  },
+  impactText: {
+    fontSize: 12,
+    color: '#666',
+    marginTop: 4,
+  },
+  viewButton: {
+    backgroundColor: PRIMARY_COLOR,
+    borderRadius: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    alignItems: 'center',
+    marginTop: 12,
+  },
+  viewButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '500',
+  },
 });
-
