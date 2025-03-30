@@ -8,6 +8,9 @@ import 'react-native-reanimated';
 import { ClerkProvider, useAuth } from '@clerk/clerk-expo';
 import * as SecureStore from 'expo-secure-store';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { Platform, View, StyleSheet } from 'react-native';
+import Constants from 'expo-constants';
 
 import { useColorScheme } from '@/hooks/useColorScheme';
 
@@ -65,6 +68,15 @@ function AuthProtection() {
   return null;
 }
 
+// Create a custom SafeArea component that handles Android status bar
+function CustomStatusBar() {
+  const statusBarHeight = Platform.OS === 'android' ? Constants.statusBarHeight : 0;
+  
+  return (
+    <View style={{ height: statusBarHeight, backgroundColor: '#1E3A5F' }} />
+  );
+}
+
 export default function RootLayout() {
   const [loaded, error] = useFonts({
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
@@ -92,15 +104,18 @@ export default function RootLayout() {
   }
 
   return (
-    <ClerkProvider
-      publishableKey={process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY!}
-      tokenCache={tokenCache}
-    >
-      <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-        <Slot />
-        <AuthProtection />
-        <StatusBar style="auto" />
-      </ThemeProvider>
-    </ClerkProvider>
+    <SafeAreaProvider>
+      <ClerkProvider
+        publishableKey={process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY!}
+        tokenCache={tokenCache}
+      >
+        <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+          <CustomStatusBar />
+          <Slot />
+          <AuthProtection />
+          <StatusBar style="light" />
+        </ThemeProvider>
+      </ClerkProvider>
+    </SafeAreaProvider>
   );
 }

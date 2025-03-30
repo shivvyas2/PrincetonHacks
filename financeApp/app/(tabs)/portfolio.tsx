@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity, TextInput, Image, Dimensions, ActivityIndicator } from 'react-native';
+import { View, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity, TextInput, Image, Dimensions, ActivityIndicator, Platform } from 'react-native';
 import { ThemedText } from '@/components/ThemedText';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -139,7 +139,7 @@ const portfolioData = {
   transactions: [
     { id: 1, projectId: 1, type: "investment", amount: 5750, date: "February 12, 2025" },
     { id: 2, projectId: 2, type: "investment", amount: 7800, date: "January 5, 2025" },
-    { id: 3, projectId: 5, type: "dividends", amount: 1200, date: "March 15, 2025" }
+    { id: 3, projectId: 5, type: "investment", amount: 8000, date: "March 15, 2025" }
   ],
   chartData: {
     labels: ["Jan", "Feb", "Mar", "Apr", "May", "Jun"],
@@ -169,11 +169,15 @@ export default function PortfolioScreen() {
   const [isLoadingPhotos, setIsLoadingPhotos] = useState(true);
   const [profit, setProfit] = useState(1200); // example profit
   const [investmentDate, setInvestmentDate] = useState(new Date('2025-01-01'));
+  
+  // Platform-specific adjustments
+  const isAndroid = Platform.OS === 'android';
+  const androidTopPadding = isAndroid ? 16 : 0;
 
   const handleWithdraw = () => {
     console.log('Withdrawal initiated');
-    // Navigate to withdraw screen or trigger withdrawal process
-    router.push('/(tabs)/withdraw');
+    // Navigate to index tab instead of withdraw page
+    router.push('/(tabs)');
   };
 
   // Load business photos from Unsplash API
@@ -236,13 +240,12 @@ export default function PortfolioScreen() {
   const screenWidth = Dimensions.get("window").width - 40; // -40 for padding
   
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { paddingTop: androidTopPadding }]}>
       {/* Header */}
     
       {/* Portfolio Summary Card */}
       <View style={styles.summaryCard}>
       
-        
         <View style={styles.totalInvestment}>
           <ThemedText style={styles.totalInvestmentLabel}>Total Investment ({localBusinesses.length} Projects)</ThemedText>
           <ThemedText style={styles.totalInvestmentValue}>{formatCurrency(portfolioData.totalInvestment)}</ThemedText>
@@ -348,8 +351,8 @@ export default function PortfolioScreen() {
                     <View style={styles.projectNameContainer}>
                       <ThemedText style={styles.projectName} numberOfLines={1}>{project.name}</ThemedText>
                       <View style={styles.projectReturn}>
-                        <Ionicons name="trending-up" size={16} color="#00C853" />
-                        <ThemedText style={styles.projectReturnText}>${project.returnAmount.toLocaleString()} (+{project.returnPercentage}%)</ThemedText>
+                        <Ionicons name="trending-up" size={16} color="#000" />
+                        <ThemedText style={[styles.projectReturnText, {color: '#111'}]}>${project.returnAmount.toLocaleString()} (+{project.returnPercentage}%)</ThemedText>
                       </View>
                     </View>
                     <View style={styles.projectProgressContainer}>
@@ -397,12 +400,10 @@ export default function PortfolioScreen() {
               const project = portfolioData.projects.find(p => p.id === transaction.projectId);
               if (!project) return null;
               
-              let transactionColor = '#00C853'; // Default green for investment
+              let transactionColor = '#4CAF50'; // Green for investment
               
               if (transaction.type === 'withdrawal') {
                 transactionColor = '#6200EE'; // Purple for withdrawal
-              } else if (transaction.type === 'dividends') {
-                transactionColor = '#FFA000'; // Amber for dividends
               }
               
               return (
@@ -410,19 +411,19 @@ export default function PortfolioScreen() {
                   <Image source={project.image} style={styles.transactionImage} />
                   <View style={styles.transactionInfo}>
                     <ThemedText style={styles.transactionProjectName} numberOfLines={1}>{project.name}</ThemedText>
-                    <ThemedText style={styles.transactionDate}>{transaction.date}</ThemedText>
+                    <ThemedText style={styles.transactionDate}> {transaction.date}</ThemedText>
                   </View>
                   <View style={styles.transactionAmount}>
                     <ThemedText 
                       style={[
                         styles.transactionAmountText, 
-                        { color: transactionColor }
+                        { color: '#000' }
                       ]}
                     >
                       {transaction.type === 'investment' ? '-' : '+'}${transaction.amount.toLocaleString()}
                     </ThemedText>
                     <View style={[styles.transactionTypeIndicator, { backgroundColor: transactionColor }]}>
-                      <ThemedText style={styles.transactionTypeText}>{transaction.type}</ThemedText>
+                      <ThemedText style={[styles.transactionTypeText, {color: '#fff'}]}>{transaction.type}</ThemedText>
                     </View>
                   </View>
                 </View>
@@ -537,10 +538,10 @@ const styles = StyleSheet.create({
     borderBottomColor: PRIMARY_COLOR,
   },
   tabText: {
-    color: '#666',
+    color: '#000',
   },
   activeTabText: {
-    color: PRIMARY_COLOR,
+    color: '#000',
     fontWeight: '600',
   },
   content: {
@@ -555,9 +556,10 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: 'bold',
     marginBottom: 5,
+    color: '#000',
   },
   sectionSubtitle: {
-    color: '#666',
+    color: '#000',
     fontSize: 14,
   },
   chartContainer: {
@@ -591,11 +593,12 @@ const styles = StyleSheet.create({
   },
   chartDate: {
     fontSize: 12,
-    color: '#666',
+    color: '#000',
   },
   chartValue: {
     fontSize: 16,
     fontWeight: 'bold',
+    color: '#000',
   },
   chartPercentage: {
     fontSize: 12,
@@ -616,7 +619,7 @@ const styles = StyleSheet.create({
   },
   timeFilterText: {
     fontSize: 12,
-    color: '#666',
+    color: '#000',
   },
   activeTimeFilterText: {
     color: '#fff',
@@ -631,10 +634,11 @@ const styles = StyleSheet.create({
   myProjectsTitle: {
     fontSize: 18,
     fontWeight: 'bold',
+    color: '#000',
   },
   viewAllText: {
-    color: SECONDARY_COLOR,
-    fontSize: 14,
+    color: PRIMARY_COLOR,
+    fontWeight: '600',
   },
   projectItem: {
     flexDirection: 'row',
@@ -662,6 +666,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     flex: 1,
+    color: '#000',
   },
   projectReturn: {
     flexDirection: 'row',
@@ -669,7 +674,7 @@ const styles = StyleSheet.create({
   },
   projectReturnText: {
     fontSize: 12,
-    color: '#00C853',
+    color: '#000',
     marginLeft: 5,
   },
   projectProgressContainer: {
@@ -689,6 +694,7 @@ const styles = StyleSheet.create({
   projectAmounts: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    color: '#111',
   },
   projectInvestedAmount: {
     fontSize: 14,
@@ -696,7 +702,7 @@ const styles = StyleSheet.create({
   },
   projectProgressPercentage: {
     fontSize: 14,
-    color: '#666',
+    color: '#000',
   },
   transactionItem: {
     flexDirection: 'row',
@@ -718,11 +724,12 @@ const styles = StyleSheet.create({
   transactionProjectName: {
     fontSize: 16,
     fontWeight: '600',
-    marginBottom: 5,
+    marginBottom: 4,
+    color: '#000',
   },
   transactionDate: {
     fontSize: 12,
-    color: '#666',
+    color: '#000',
   },
   transactionAmount: {
     alignItems: 'flex-end',
@@ -731,6 +738,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     marginBottom: 5,
+    color: '#000',
   },
   transactionTypeIndicator: {
     paddingHorizontal: 8,
@@ -753,9 +761,10 @@ const styles = StyleSheet.create({
     marginBottom: 15,
   },
   analyticsTitle: {
-    fontSize: 16,
-    fontWeight: '600',
+    fontSize: 18,
+    fontWeight: 'bold',
     marginBottom: 10,
+    color: '#000',
   },
   analyticsValue: {
     fontSize: 24,
@@ -765,7 +774,8 @@ const styles = StyleSheet.create({
   },
   analyticsSubtitle: {
     fontSize: 14,
-    color: '#666',
+    color: '#000',
+    marginBottom: 10,
   },
   profitSharingInfo: {
     marginTop: 15,
@@ -784,10 +794,11 @@ const styles = StyleSheet.create({
   },
   profitSharingText: {
     fontSize: 14,
+    color: '#000',
   },
   profitThresholdText: {
     fontSize: 12,
-    color: '#666',
+    color: '#000',
     fontStyle: 'italic',
     marginTop: 5,
   },
@@ -798,7 +809,7 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     marginTop: 10,
-    color: '#666',
+    color: '#000',
     fontSize: 14,
   },
   withdrawSection: {
@@ -834,3 +845,4 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
 });
+

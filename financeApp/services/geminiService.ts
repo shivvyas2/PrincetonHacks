@@ -18,6 +18,17 @@ try {
   console.error('Error initializing Gemini AI:', error);
 }
 
+// Pre-generated fallback recommendations to use when API is rate-limited
+const fallbackRecommendations = [
+  "This business perfectly aligns with your recent spending habits and could offer a fantastic new experience!",
+  "Based on your recent activities, you might enjoy the unique offerings from this local establishment.",
+  "This business shares values you care about, offering sustainable practices and community support.",
+  "Your spending patterns suggest you'd appreciate the quality and care this business puts into their products.",
+  "This local business complements your lifestyle preferences with ethically sourced goods and services.",
+  "Supporting this business would contribute to community growth while providing products you'll enjoy.",
+  "Your transaction history suggests this business might introduce you to new favorites you haven't tried yet."
+];
+
 interface TransactionInsights {
   totalSpent: number;
   favoriteItems: Array<{
@@ -60,11 +71,7 @@ export async function rankBusinesses(
 ): Promise<RankedBusiness[]> {
   if (!API_KEY || !genAI) {
     console.error('Gemini API not configured');
-    return businesses.map((business, index) => ({
-      ...business,
-      rank: index + 1,
-      reason: 'Default ranking based on database order'
-    }));
+    return applyFallbackRecommendations(businesses);
   }
 
   try {
@@ -99,11 +106,40 @@ export async function rankBusinesses(
     Do not include any negative language or warnings. Focus on opportunities and positive outcomes.`;
 
     console.log('Sending prompt to Gemini AI...');
-    const result = await model.generateContent(prompt);
+    
+    // Try the API call with exponential backoff (max 2 retries)
+    let result;
+    let retries = 0;
+    const maxRetries = 2;
+    
+    while (retries <= maxRetries) {
+      try {
+        result = await model.generateContent(prompt);
+        break; // If successful, exit the loop
+      } catch (error: any) {
+        // Check if this is a rate limit error (429)
+        if (error.toString().includes('429') && retries < maxRetries) {
+          retries++;
+          const delay = Math.pow(2, retries) * 1000; // Exponential backoff
+          console.log(`Rate limit hit, retrying in ${delay/1000} seconds (attempt ${retries}/${maxRetries})...`);
+          await new Promise(resolve => setTimeout(resolve, delay));
+        } else {
+          // Either not a rate limit error or we've exhausted retries
+          throw error;
+        }
+      }
+    }
+    
+    // If we couldn't get a result after retries, use fallback
+    if (!result) {
+      console.log('Failed to get response after retries, using fallback');
+      return applyFallbackRecommendations(businesses);
+    }
+    
     const response = await result.response;
     const text = response.text();
     
-    console.log('Received response from Gemini AI:', text);
+    console.log('Received response from Gemini AI');
     
     try {
       // Clean the response text to ensure it's valid JSON
@@ -121,19 +157,19 @@ export async function rankBusinesses(
       return rankedBusinesses.sort((a, b) => a.rank - b.rank);
     } catch (parseError) {
       console.error('Error parsing Gemini response:', parseError);
-      console.error('Raw response:', text);
-      return businesses.map((business, index) => ({
-        ...business,
-        rank: index + 1,
-        reason: 'Default ranking based on database order'
-      }));
+      return applyFallbackRecommendations(businesses);
     }
   } catch (error) {
     console.error('Error generating rankings:', error);
-    return businesses.map((business, index) => ({
-      ...business,
-      rank: index + 1,
-      reason: 'Default ranking based on database order'
-    }));
+    return applyFallbackRecommendations(businesses);
   }
-} 
+}
+
+// Helper function to apply fallback recommendations
+function applyFallbackRecommendations(businesses: Business[]): RankedBusiness[] {
+  return businesses.map((business, index) => ({
+    ...business,
+    rank: index + 1,
+    reason: fallbackRecommendations[index % fallbackRecommendations.length]
+  }));
+}

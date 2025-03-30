@@ -1,18 +1,19 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   View, 
   StyleSheet, 
-  ScrollView, 
-  Image, 
+  Modal, 
   TouchableOpacity, 
-  Modal,
-  Dimensions,
+  Image, 
+  ScrollView, 
   ActivityIndicator,
-  Platform
+  Platform,
+  Dimensions
 } from 'react-native';
-import { ThemedText } from '@/components/ThemedText';
 import { Ionicons } from '@expo/vector-icons';
+import { Video, ResizeMode, AVPlaybackStatus } from 'expo-av';
 import { getBusinessPhotoUrl } from '@/services/unsplashApi';
+import { ThemedText } from '@/components/ThemedText';
 
 // App theme colors
 const PRIMARY_COLOR = '#1E3A5F'; // Dark blue as primary color
@@ -138,7 +139,7 @@ const businessStories = {
 };
 
 // Default story for businesses not in our database
-const defaultStory = {
+const defaultStoryData = {
   foundedYear: 2020,
   founder: "Local Entrepreneur",
   story: "This local business was founded with a commitment to sustainability and community impact. Through innovative practices and dedication to quality, they've grown to become an important part of Princeton's vibrant business ecosystem.",
@@ -160,8 +161,8 @@ interface BusinessStoryModalProps {
   visible: boolean;
   onClose: () => void;
   businessId: string | number;
-  businessName: string;
-  onInvest?: () => void;
+  businessName: string | null;
+  onInvest?: (businessName: string) => void;
 }
 
 export default function BusinessStoryModal({ 
@@ -172,8 +173,13 @@ export default function BusinessStoryModal({
   onInvest
 }: BusinessStoryModalProps) {
   const [businessPhoto, setBusinessPhoto] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [storyData, setStoryData] = useState<any>(defaultStory);
+  const [isLoading, setIsLoading] = useState(true);
+  const [storyData, setStoryData] = useState(defaultStoryData);
+  const videoRef = useRef<Video>(null);
+  
+  // Platform-specific adjustments
+  const isAndroid = Platform.OS === 'android';
+  const androidPadding = isAndroid ? { paddingTop: 20 } : {};
   
   // Load business photo
   useEffect(() => {
@@ -195,12 +201,34 @@ export default function BusinessStoryModal({
     }
   }, [businessName, visible]);
   
+  // Play video when modal becomes visible and pause when hidden
+  useEffect(() => {
+    const handleVideoPlayback = async () => {
+      if (videoRef.current) {
+        if (visible) {
+          await videoRef.current.playAsync();
+        } else {
+          await videoRef.current.pauseAsync();
+        }
+      }
+    };
+    
+    handleVideoPlayback();
+    
+    return () => {
+      // Clean up when component unmounts
+      if (videoRef.current) {
+        videoRef.current.pauseAsync();
+      }
+    };
+  }, [visible]);
+  
   // Load business story data
   useEffect(() => {
     if (businessName && businessStories[businessName as keyof typeof businessStories]) {
       setStoryData(businessStories[businessName as keyof typeof businessStories]);
     } else {
-      setStoryData(defaultStory);
+      setStoryData(defaultStoryData);
     }
   }, [businessName]);
   
@@ -211,7 +239,7 @@ export default function BusinessStoryModal({
       transparent={false}
       onRequestClose={onClose}
     >
-      <View style={styles.container}>
+      <View style={[styles.container, androidPadding]}>
         {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity style={styles.closeButton} onPress={onClose}>
@@ -250,16 +278,42 @@ export default function BusinessStoryModal({
             
             {/* Business Story */}
             <View style={styles.section}>
-              <ThemedText style={styles.sectionTitle}>Our Story</ThemedText>
-              <ThemedText style={styles.storyText}>{storyData.story}</ThemedText>
+              <View style={styles.sectionTitleContainer}>
+                <Ionicons name="book" size={20} color={PRIMARY_COLOR} />
+                <ThemedText style={styles.sectionTitle}>Our Story</ThemedText>
+              </View>
+              
+              {/* Video Section */}
+              <View style={styles.videoSection}>
+                <Video
+                  ref={videoRef}
+                  source={require('@/assets/coffee.mp4')}
+                  resizeMode={ResizeMode.COVER}
+                  style={styles.video}
+                  useNativeControls
+                  isLooping
+                />
+                <View style={styles.videoCaption}>
+                  <ThemedText style={styles.videoCaptionText}>
+                    A day at {businessName} - Experience the atmosphere
+                  </ThemedText>
+                </View>
+              </View>
+              
+              <View style={styles.storyCardContainer}>
+                <ThemedText style={styles.storyText}>{storyData.story}</ThemedText>
+              </View>
             </View>
             
             {/* Impact Section */}
             <View style={styles.section}>
-              <ThemedText style={styles.sectionTitle}>Community Impact</ThemedText>
-              <View style={styles.impactList}>
+              <View style={styles.sectionTitleContainer}>
+                <Ionicons name="leaf" size={20} color={PRIMARY_COLOR} />
+                <ThemedText style={styles.sectionTitle}>Community Impact</ThemedText>
+              </View>
+              <View style={styles.impactCardContainer}>
                 {storyData.impact.map((impact: string, index: number) => (
-                  <View key={index} style={styles.impactItem}>
+                  <View key={index} style={styles.impactCard}>
                     <Ionicons name="checkmark-circle" size={20} color={PRIMARY_COLOR} style={styles.impactIcon} />
                     <ThemedText style={styles.impactText}>{impact}</ThemedText>
                   </View>
@@ -269,7 +323,10 @@ export default function BusinessStoryModal({
             
             {/* Milestones */}
             <View style={styles.section}>
-              <ThemedText style={styles.sectionTitle}>Key Milestones</ThemedText>
+              <View style={styles.sectionTitleContainer}>
+                <Ionicons name="time" size={20} color={PRIMARY_COLOR} />
+                <ThemedText style={styles.sectionTitle}>Key Milestones</ThemedText>
+              </View>
               <View style={styles.timelineContainer}>
                 {storyData.milestones.map((milestone: any, index: number) => (
                   <View key={index} style={styles.timelineItem}>
@@ -294,7 +351,7 @@ export default function BusinessStoryModal({
                 <ThemedText style={styles.investTitle}>Ready to support {businessName}?</ThemedText>
                 <TouchableOpacity 
                   style={styles.investButton}
-                  onPress={onInvest}
+                  onPress={() => onInvest && onInvest(businessName as string)}
                 >
                   <ThemedText style={styles.investButtonText}>Invest Now</ThemedText>
                 </TouchableOpacity>
@@ -328,7 +385,6 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
     color: '#FFF',
-
   },
   closeButton: {
     width: 40,
@@ -382,34 +438,46 @@ const styles = StyleSheet.create({
   section: {
     marginBottom: 24,
   },
+  sectionTitleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
   sectionTitle: {
     fontSize: 20,
     fontWeight: 'bold',
     color: PRIMARY_COLOR,
-    marginBottom: 16,
+    marginLeft: 8,
+  },
+  storyCardContainer: {
+    backgroundColor: '#F7FAFC',
+    borderRadius: 16,
+    padding: 16,
   },
   storyText: {
     fontSize: 16,
     lineHeight: 24,
     color: '#333',
   },
-  impactList: {
-    marginTop: 8,
-  },
-  impactItem: {
+  impactCardContainer: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
-    marginBottom: 12,
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+  },
+  impactCard: {
+    backgroundColor: '#F7FAFC',
+    borderRadius: 16,
+    padding: 16,
+    width: '48%',
+    marginBottom: 16,
   },
   impactIcon: {
     marginRight: 8,
-    marginTop: 2,
   },
   impactText: {
     fontSize: 16,
     lineHeight: 24,
     color: '#333',
-    flex: 1,
   },
   timelineContainer: {
     marginTop: 8,
@@ -453,6 +521,27 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#333',
   },
+  videoSection: {
+    width: '100%',
+    height: 200,
+    marginBottom: 20,
+  },
+  video: {
+    width: '100%',
+    height: '100%',
+  },
+  videoCaption: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    padding: 8,
+  },
+  videoCaptionText: {
+    fontSize: 16,
+    color: '#FFF',
+  },
   investSection: {
     marginTop: 16,
     backgroundColor: '#F7FAFC',
@@ -484,4 +573,3 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
 });
-

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, StyleSheet, Text, Dimensions, TouchableOpacity, Image, ScrollView, ActivityIndicator, TextInput } from 'react-native';
+import { View, StyleSheet, Text, Dimensions, TouchableOpacity, Image, ScrollView, ActivityIndicator, TextInput, Platform } from 'react-native';
 import MapView, { Marker } from 'react-native-maps';
 import * as Location from 'expo-location';
 import { Ionicons } from '@expo/vector-icons';
@@ -187,8 +187,13 @@ export default function CommunityScreen() {
   const [isBusinessOwner, setIsBusinessOwner] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedBusinessForModal, setSelectedBusinessForModal] = useState<Business | Investor | null>(null);
+  const [isBusinessListMinimized, setIsBusinessListMinimized] = useState(false);
   const mapRef = useRef<MapView>(null);
   const router = useRouter();
+  
+  // Platform-specific adjustments
+  const isAndroid = Platform.OS === 'android';
+  const androidPadding = isAndroid ? { paddingTop: 16 } : {};
 
   // Load business owner status
   useEffect(() => {
@@ -308,9 +313,12 @@ export default function CommunityScreen() {
               ${(business.fundingGoal / 1000).toFixed(0)}K goal
             </ThemedText>
           </View>
-          <ThemedText style={styles.impactText}>
-            Impact: {business.impact}
-          </ThemedText>
+          <View style={styles.impactContainer}>
+            <Ionicons name="leaf" size={16} color={PRIMARY_COLOR} />
+            <ThemedText style={styles.impactText}>
+              {business.impact}
+            </ThemedText>
+          </View>
         </View>
       );
     }
@@ -329,9 +337,12 @@ export default function CommunityScreen() {
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, androidPadding]}>
       {/* Map View */}
-      <View style={styles.mapContainer}>
+      <View style={[
+        styles.mapContainer,
+        isBusinessListMinimized && styles.expandedMapContainer
+      ]}>
         <MapView
           ref={mapRef}
           style={styles.map}
@@ -370,112 +381,130 @@ export default function CommunityScreen() {
       </View>
       
       {/* Business/Investor List */}
-      <View style={styles.businessListContainer}>
+      <View style={[
+        styles.businessListContainer, 
+        isBusinessListMinimized && styles.minimizedBusinessListContainer
+      ]}>
         <View style={styles.businessListHeader}>
-          <ThemedText style={styles.businessListTitle}>
-            {isBusinessOwner ? "Nearby Investors" : "Nearby Small Businesses"}
-          </ThemedText>
-          <ThemedText style={styles.businessListSubtitle}>
-            {isBusinessOwner 
-              ? "Find potential investors in your area" 
-              : "Discover and support local businesses"}
-          </ThemedText>
+          <View style={styles.headerLeftContent}>
+            <ThemedText style={styles.businessListTitle}>
+              {isBusinessOwner ? "Nearby Investors" : "Nearby Small Businesses"}
+            </ThemedText>
+            <ThemedText style={styles.businessListSubtitle}>
+              {isBusinessOwner 
+                ? "Find potential investors in your area" 
+                : "Discover and support local businesses"}
+            </ThemedText>
+          </View>
+          
+          <TouchableOpacity 
+            style={styles.toggleButton}
+            onPress={() => setIsBusinessListMinimized(!isBusinessListMinimized)}
+          >
+            <Ionicons 
+              name={isBusinessListMinimized ? "chevron-up" : "chevron-down"} 
+              size={24} 
+              color={PRIMARY_COLOR} 
+            />
+          </TouchableOpacity>
         </View>
         
-        {isBusinessOwner ? (
-          // Business Owner View - Just show investors without search
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.businessCardsContainer}
-          >
-            {getData().map((item) => (
-              <TouchableOpacity
-                key={item.id}
-                style={[
-                  styles.businessCard,
-                  selectedBusiness?.id === item.id && styles.selectedBusinessCard
-                ]}
-                onPress={() => centerMapOnItem(item)}
-                onLongPress={() => navigateToBusinessStory(item)}
-                delayLongPress={500}
-              >
-                <Image source={{ uri: item.imageUrl }} style={styles.businessImage} />
-                <View style={styles.businessCardContent}>
-                  <ThemedText style={styles.businessName}>{item.name}</ThemedText>
-                  <ThemedText style={styles.businessCategory}>{item.category}</ThemedText>
-                  
-                  <View style={styles.ratingContainer}>
-                    <Ionicons name="star" size={16} color="#FFD700" />
-                    <ThemedText style={styles.ratingText}>{item.rating}</ThemedText>
-                    <ThemedText style={styles.reviewCount}>({item.reviews} reviews)</ThemedText>
-                  </View>
-                  
-                  {renderFundingInfo(item)}
-                  
-                  <TouchableOpacity 
-                    style={styles.viewButton}
-                    onPress={() => navigateToBusinessStory(item)}
-                  >
-                    <ThemedText style={styles.viewButtonText}>View Profile</ThemedText>
-                  </TouchableOpacity>
-                </View>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-        ) : (
-          // Investor View - Show businesses with search
+        {!isBusinessListMinimized && (
           <>
-            <View style={styles.searchContainer}>
-              <Ionicons name="search" size={20} color="#999" style={styles.searchIcon} />
-              <TextInput
-                style={styles.searchInput}
-                placeholder="Search businesses..."
-                placeholderTextColor="#999"
-              />
-            </View>
-            
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.businessCardsContainer}
-            >
-              {getData().map((item) => (
-                <TouchableOpacity
-                  key={item.id}
-                  style={[
-                    styles.businessCard,
-                    selectedBusiness?.id === item.id && styles.selectedBusinessCard
-                  ]}
-                  onPress={() => centerMapOnItem(item)}
-                  onLongPress={() => navigateToBusinessStory(item)}
-                  delayLongPress={500}
-                >
-                  <Image source={{ uri: item.imageUrl }} style={styles.businessImage} />
-                  <View style={styles.businessCardContent}>
-                    <ThemedText style={styles.businessName}>{item.name}</ThemedText>
-                    <ThemedText style={styles.businessCategory}>{item.category}</ThemedText>
-                    
-                    <View style={styles.ratingContainer}>
-                      <Ionicons name="star" size={16} color="#FFD700" />
-                      <ThemedText style={styles.ratingText}>{item.rating}</ThemedText>
-                      <ThemedText style={styles.reviewCount}>({item.reviews} reviews)</ThemedText>
+            {isBusinessOwner ? (
+              // Business Owner View - Just show investors without search
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.businessCardsContainer}
+              >
+                {getData().map((item) => (
+                  <TouchableOpacity
+                    key={item.id}
+                    style={[
+                      styles.businessCard,
+                      selectedBusiness?.id === item.id && styles.selectedBusinessCard
+                    ]}
+                    onPress={() => centerMapOnItem(item)}
+                    onLongPress={() => navigateToBusinessStory(item)}
+                    delayLongPress={500}
+                  >
+                    <Image source={{ uri: item.imageUrl }} style={styles.businessImage} />
+                    <View style={styles.businessCardContent}>
+                      <ThemedText style={styles.businessName}>{item.name}</ThemedText>
+                      <ThemedText style={styles.businessCategory}>{item.category}</ThemedText>
+                      
+                      <View style={styles.ratingContainer}>
+                        <Ionicons name="star" size={16} color="#FFD700" />
+                        <ThemedText style={styles.ratingText}>{item.rating}</ThemedText>
+                        <ThemedText style={styles.reviewCount}>({item.reviews} reviews)</ThemedText>
+                      </View>
+                      
+                      {renderFundingInfo(item)}
+                      
+                      <TouchableOpacity 
+                        style={styles.viewButton}
+                        onPress={() => navigateToBusinessStory(item)}
+                      >
+                        <ThemedText style={styles.viewButtonText}>View Profile</ThemedText>
+                      </TouchableOpacity>
                     </View>
-                    
-                    {renderFundingInfo(item)}
-                    
-                    <TouchableOpacity 
-                      style={styles.viewButton}
-                      onPress={() => navigateToBusinessStory(item)}
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            ) : (
+              // Investor View - Show businesses with search
+              <>
+                <View style={styles.searchContainer}>
+                  <Ionicons name="search" size={20} color="#999" style={styles.searchIcon} />
+                  <TextInput
+                    style={styles.searchInput}
+                    placeholder="Search businesses..."
+                    placeholderTextColor="#999"
+                  />
+                </View>
+                
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.businessCardsContainer}
+                >
+                  {getData().map((item) => (
+                    <TouchableOpacity
+                      key={item.id}
+                      style={[
+                        styles.businessCard,
+                        selectedBusiness?.id === item.id && styles.selectedBusinessCard
+                      ]}
+                      onPress={() => centerMapOnItem(item)}
+                      onLongPress={() => navigateToBusinessStory(item)}
+                      delayLongPress={500}
                     >
-                      <ThemedText style={styles.viewButtonText}>
-                        {isBusinessOwner ? "View Profile" : "View Business"}
-                      </ThemedText>
+                      <Image source={{ uri: item.imageUrl }} style={styles.businessImage} />
+                      <View style={styles.businessCardContent}>
+                        <ThemedText style={styles.businessName}>{item.name}</ThemedText>
+                        <ThemedText style={styles.businessCategory}>{item.category}</ThemedText>
+                        
+                        <View style={styles.ratingContainer}>
+                          <Ionicons name="star" size={16} color="#FFD700" />
+                          <ThemedText style={styles.ratingText}>{item.rating}</ThemedText>
+                          <ThemedText style={styles.reviewCount}>({item.reviews} reviews)</ThemedText>
+                        </View>
+                        
+                        {renderFundingInfo(item)}
+                        
+                        <TouchableOpacity 
+                          style={styles.viewButton}
+                          onPress={() => navigateToBusinessStory(item)}
+                        >
+                          <ThemedText style={styles.viewButtonText}>View Profile</ThemedText>
+                        </TouchableOpacity>
+                      </View>
                     </TouchableOpacity>
-                  </View>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
+                  ))}
+                </ScrollView>
+              </>
+            )}
           </>
         )}
       </View>
@@ -513,6 +542,9 @@ const styles = StyleSheet.create({
     height: height * 0.4, // 40% of screen height for map
     width: width,
   },
+  expandedMapContainer: {
+    height: height * 0.6, // 60% of screen height for map when business list is minimized
+  },
   map: {
     width: '100%',
     height: '100%',
@@ -530,9 +562,18 @@ const styles = StyleSheet.create({
     shadowRadius: 5,
     elevation: 5,
   },
+  minimizedBusinessListContainer: {
+    height: 60,
+  },
   businessListHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     paddingHorizontal: 20,
     marginBottom: 15,
+  },
+  headerLeftContent: {
+    flex: 1,
   },
   businessListTitle: {
     fontSize: 20,
@@ -543,6 +584,9 @@ const styles = StyleSheet.create({
   businessListSubtitle: {
     fontSize: 14,
     color: '#666',
+  },
+  toggleButton: {
+    padding: 10,
   },
   searchContainer: {
     flexDirection: 'row',
@@ -651,10 +695,15 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#666',
   },
+  impactContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 4,
+  },
   impactText: {
     fontSize: 12,
     color: '#666',
-    marginTop: 4,
+    marginLeft: 8,
   },
   viewButton: {
     backgroundColor: PRIMARY_COLOR,
