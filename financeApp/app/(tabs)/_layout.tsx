@@ -74,7 +74,7 @@ export default function TabLayout() {
           tabBarIcon: ({ focused }) => (
             <View style={styles.cameraContainer}>
               <Ionicons
-                name="cash"
+                name="card"
                 size={28}
                 color="#fff"
                 style={styles.cameraIcon}
