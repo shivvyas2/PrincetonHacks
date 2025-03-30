@@ -8,9 +8,10 @@ import {
   Dimensions, 
   ActivityIndicator,
   Animated,
-  Platform
+  Platform,
+  SafeAreaView
 } from 'react-native';
-import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ThemedText } from '@/components/ThemedText';
 import { Ionicons } from '@expo/vector-icons';
 import { Video, ResizeMode } from 'expo-av';
@@ -166,23 +167,20 @@ const defaultStory = {
 };
 
 export default function BusinessStoryScreen() {
+  const { id, name } = useLocalSearchParams<{ id: string; name: string }>();
   const router = useRouter();
-  const params = useLocalSearchParams();
-  const { id, name } = params;
-  
-  const [businessName, setBusinessName] = useState<string>(name as string || 'Business');
   const [businessPhoto, setBusinessPhoto] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [storyData, setStoryData] = useState<any>(defaultStory);
   const scrollY = useRef(new Animated.Value(0)).current;
-  const videoRef = useRef<Video>(null);
+  const videoRef = useRef(null);
   
   // Load business photo
   useEffect(() => {
     const loadBusinessPhoto = async () => {
       try {
-        if (businessName) {
-          const photoUrl = await getBusinessPhotoUrl(businessName);
+        if (name) {
+          const photoUrl = await getBusinessPhotoUrl(name);
           setBusinessPhoto(photoUrl);
         }
       } catch (error) {
@@ -193,150 +191,106 @@ export default function BusinessStoryScreen() {
     };
     
     loadBusinessPhoto();
-  }, [businessName]);
+  }, [name]);
   
   // Load business story data
   useEffect(() => {
-    if (businessName && businessStories[businessName as keyof typeof businessStories]) {
-      setStoryData(businessStories[businessName as keyof typeof businessStories]);
+    if (name && businessStories[name as keyof typeof businessStories]) {
+      setStoryData(businessStories[name as keyof typeof businessStories]);
     } else {
       setStoryData(defaultStory);
     }
-  }, [businessName]);
-  
-  // Header opacity animation
-  const headerOpacity = scrollY.interpolate({
-    inputRange: [0, 100, 200],
-    outputRange: [0, 0.5, 1],
-    extrapolate: 'clamp',
-  });
-  
-  // Play video when component mounts
-  useEffect(() => {
-    if (videoRef.current) {
-      videoRef.current.playAsync();
-    }
-  }, []);
+  }, [name]);
   
   return (
-    <>
-      <Stack.Screen 
-        options={{
-          title: businessName,
-          headerShown: false,
-        }} 
-      />
-      
-      <View style={styles.container}>
-        {/* Animated Header */}
-        <Animated.View style={[
-          styles.animatedHeader,
-          { opacity: headerOpacity }
-        ]}>
-          <View style={styles.headerContent}>
-            <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-              <Ionicons name="arrow-back" size={24} color="#FFF" />
-            </TouchableOpacity>
-            <ThemedText style={styles.headerTitle}>{businessName}</ThemedText>
-            <View style={{ width: 24 }} />
-          </View>
-        </Animated.View>
+    <SafeAreaView style={styles.container}>
+      <ScrollView
+        style={styles.scrollView}
+        showsVerticalScrollIndicator={false}
+        onScroll={Animated.event(
+          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+          { useNativeDriver: false }
+        )}
+        scrollEventThrottle={16}
+      >
+        {/* Video Section */}
+        <View style={styles.videoContainer}>
+          <Video
+            ref={videoRef}
+            style={styles.video}
+            source={{ uri: storyData.videoUrl }}
+            useNativeControls
+            resizeMode={ResizeMode.COVER}
+            isLooping
+            shouldPlay={false}
+          />
+        </View>
         
-        {/* Main Content */}
-        <Animated.ScrollView
-          style={styles.scrollView}
-          showsVerticalScrollIndicator={false}
-          scrollEventThrottle={16}
-          onScroll={Animated.event(
-            [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-            { useNativeDriver: true }
-          )}
-        >
-          {/* Video Section */}
-          <View style={styles.videoContainer}>
-            <Video
-              ref={videoRef}
-              style={styles.video}
-              source={{ uri: storyData.videoUrl }}
-              useNativeControls
-              resizeMode={ResizeMode.COVER}
-              isLooping
-              shouldPlay={false}
-            />
+        {/* Business Info */}
+        <View style={styles.contentContainer}>
+          <View style={styles.businessHeader}>
+            <ThemedText style={styles.businessName}>{name}</ThemedText>
+            <View style={styles.foundedInfo}>
+              <ThemedText style={styles.foundedText}>Founded in {storyData.foundedYear} by {storyData.founder}</ThemedText>
+            </View>
+          </View>
+          
+          {/* Business Story */}
+          <View style={styles.section}>
+            <ThemedText style={styles.sectionTitle}>Our Story</ThemedText>
+            <ThemedText style={styles.storyText}>{storyData.story}</ThemedText>
+          </View>
+          
+          {/* Impact Section */}
+          <View style={styles.section}>
+            <ThemedText style={styles.sectionTitle}>Community Impact</ThemedText>
+            <View style={styles.impactList}>
+              {storyData.impact.map((impact: string, index: number) => (
+                <View key={index} style={styles.impactItem}>
+                  <Ionicons name="checkmark-circle" size={20} color={PRIMARY_COLOR} style={styles.impactIcon} />
+                  <ThemedText style={styles.impactText}>{impact}</ThemedText>
+                </View>
+              ))}
+            </View>
+          </View>
+          
+          {/* Milestones */}
+          <View style={styles.section}>
+            <ThemedText style={styles.sectionTitle}>Key Milestones</ThemedText>
+            <View style={styles.timelineContainer}>
+              {storyData.milestones.map((milestone: any, index: number) => (
+                <View key={index} style={styles.timelineItem}>
+                  <View style={styles.timelineYearContainer}>
+                    <ThemedText style={styles.timelineYear}>{milestone.year}</ThemedText>
+                  </View>
+                  <View style={styles.timelineConnector}>
+                    <View style={styles.timelineDot} />
+                    {index < storyData.milestones.length - 1 && <View style={styles.timelineLine} />}
+                  </View>
+                  <View style={styles.timelineContent}>
+                    <ThemedText style={styles.timelineEvent}>{milestone.event}</ThemedText>
+                  </View>
+                </View>
+              ))}
+            </View>
+          </View>
+          
+          {/* Investment Section */}
+          <View style={styles.investSection}>
+            <ThemedText style={styles.investTitle}>Ready to support {name}?</ThemedText>
             <TouchableOpacity 
-              style={styles.backButtonAbsolute} 
-              onPress={() => router.back()}
+              style={styles.investButton}
+              onPress={() => router.push(`/invest/business-details?id=${id}`)}
             >
-              <Ionicons name="arrow-back" size={24} color="#FFF" />
+              <ThemedText style={styles.investButtonText}>Invest Now</ThemedText>
             </TouchableOpacity>
           </View>
           
-          {/* Business Info */}
-          <View style={styles.contentContainer}>
-            <View style={styles.businessHeader}>
-              <ThemedText style={styles.businessName}>{businessName}</ThemedText>
-              <View style={styles.foundedInfo}>
-                <ThemedText style={styles.foundedText}>Founded in {storyData.foundedYear} by {storyData.founder}</ThemedText>
-              </View>
-            </View>
-            
-            {/* Business Story */}
-            <View style={styles.section}>
-              <ThemedText style={styles.sectionTitle}>Our Story</ThemedText>
-              <ThemedText style={styles.storyText}>{storyData.story}</ThemedText>
-            </View>
-            
-            {/* Impact Section */}
-            <View style={styles.section}>
-              <ThemedText style={styles.sectionTitle}>Community Impact</ThemedText>
-              <View style={styles.impactList}>
-                {storyData.impact.map((impact: string, index: number) => (
-                  <View key={index} style={styles.impactItem}>
-                    <Ionicons name="checkmark-circle" size={20} color={PRIMARY_COLOR} style={styles.impactIcon} />
-                    <ThemedText style={styles.impactText}>{impact}</ThemedText>
-                  </View>
-                ))}
-              </View>
-            </View>
-            
-            {/* Milestones */}
-            <View style={styles.section}>
-              <ThemedText style={styles.sectionTitle}>Key Milestones</ThemedText>
-              <View style={styles.timelineContainer}>
-                {storyData.milestones.map((milestone: any, index: number) => (
-                  <View key={index} style={styles.timelineItem}>
-                    <View style={styles.timelineYearContainer}>
-                      <ThemedText style={styles.timelineYear}>{milestone.year}</ThemedText>
-                    </View>
-                    <View style={styles.timelineConnector}>
-                      <View style={styles.timelineDot} />
-                      {index < storyData.milestones.length - 1 && <View style={styles.timelineLine} />}
-                    </View>
-                    <View style={styles.timelineContent}>
-                      <ThemedText style={styles.timelineEvent}>{milestone.event}</ThemedText>
-                    </View>
-                  </View>
-                ))}
-              </View>
-            </View>
-            
-            {/* Investment Section */}
-            <View style={styles.investSection}>
-              <ThemedText style={styles.investTitle}>Ready to support {businessName}?</ThemedText>
-              <TouchableOpacity 
-                style={styles.investButton}
-                onPress={() => router.push(`/invest/business-details?id=${id}`)}
-              >
-                <ThemedText style={styles.investButtonText}>Invest Now</ThemedText>
-              </TouchableOpacity>
-            </View>
-            
-            {/* Spacer for bottom padding */}
-            <View style={{ height: 40 }} />
-          </View>
-        </Animated.ScrollView>
-      </View>
-    </>
+          {/* Spacer for bottom padding */}
+          <View style={{ height: 40 }} />
+        </View>
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
@@ -345,58 +299,16 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#FFF',
   },
-  animatedHeader: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    height: Platform.OS === 'ios' ? 90 : 70,
-    backgroundColor: PRIMARY_COLOR,
-    zIndex: 100,
-    paddingTop: Platform.OS === 'ios' ? 40 : 20,
-  },
-  headerContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    height: 50,
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#FFF',
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
   scrollView: {
     flex: 1,
   },
   videoContainer: {
     width: '100%',
     height: 300,
-    position: 'relative',
   },
   video: {
     width: '100%',
     height: '100%',
-  },
-  backButtonAbsolute: {
-    position: 'absolute',
-    top: Platform.OS === 'ios' ? 50 : 30,
-    left: 16,
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(0,0,0,0.3)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    zIndex: 10,
   },
   contentContainer: {
     padding: 20,

@@ -38,6 +38,14 @@ interface Business {
   updatedAt: string;
 }
 
+// Investment metrics interface
+interface InvestmentMetrics {
+  totalInvested: number;
+  totalImpact: number;
+  businessesSupported: number;
+  monthlyGrowth: number;
+}
+
 export default function HomeScreen() {
   const { isSignedIn, sessionId } = useAuth();
   const { user } = useUser();
@@ -47,6 +55,12 @@ export default function HomeScreen() {
   const [businessList, setBusinessList] = useState<Business[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [investmentMetrics, setInvestmentMetrics] = useState<InvestmentMetrics>({
+    totalInvested: 2400,
+    totalImpact: 1200,
+    businessesSupported: 6,
+    monthlyGrowth: 8.5
+  });
   
   // Get user name from Clerk
   const userName = user ? 
@@ -73,7 +87,7 @@ export default function HomeScreen() {
       // If trying to go beyond the highest snap point (index 2 which is 80%)
       if (toIndex > 2) {
         // Force snap to the highest allowed point (80%)
-        bottomSheetRef.current?.snapToIndex(2);
+        bottomSheetRef.current?.snapToIndex(1);
         return false;
       }
       return true;
@@ -171,29 +185,41 @@ export default function HomeScreen() {
           </View>
           <View style={styles.notificationBadge}>
             <Ionicons name="notifications-outline" size={24} color="#fff" />
-            <View style={styles.badge}>
-              <ThemedText style={styles.badgeText}>3</ThemedText>
-            </View>
+          
           </View>
         </View>
 
         <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-          {/* Search Bar */}
-          <View style={styles.searchContainer}>
-            <Ionicons name="search-outline" size={20} color="#aaa" style={styles.searchIcon} />
-            <TextInput
-              style={styles.searchInput}
-              placeholder="Search small businesses to invest..."
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-              placeholderTextColor="#aaa"
-            />
-          </View>
-
+         
           {/* Investment Card */}
           <View style={styles.investmentCard}>
-            <ThemedText style={styles.investmentLabel}>Your Investment</ThemedText>
+            <View style={styles.investmentCardHeader}>
+              <ThemedText style={styles.investmentLabel}>Your Investment</ThemedText>
+              
+            </View>
+            
             <ThemedText style={styles.investmentAmount}>{investment}</ThemedText>
+            
+            <View style={styles.investmentGrowthContainer}>
+              <View style={styles.growthBadge}>
+                <Ionicons name="trending-up" size={16} color="#fff" />
+                <ThemedText style={styles.growthText}>+{investmentMetrics.monthlyGrowth}% this month</ThemedText>
+              </View>
+            </View>
+            
+            <View style={styles.metricsContainer}>
+              <View style={styles.metricItem}>
+                <ThemedText style={styles.metricValue}>{investmentMetrics.businessesSupported}</ThemedText>
+                <ThemedText style={styles.metricLabel}>Businesses</ThemedText>
+              </View>
+              
+              <View style={styles.metricDivider} />
+              
+              <View style={styles.metricItem}>
+                <ThemedText style={styles.metricValue}>${investmentMetrics.totalImpact}</ThemedText>
+                <ThemedText style={styles.metricLabel}>Impact</ThemedText>
+              </View>
+            </View>
           </View>
           
           {/* Empty space for bottom sheet */}
@@ -394,28 +420,74 @@ const styles = StyleSheet.create({
     color: '#fff',
   },
   investmentCard: {
-    backgroundColor: ACCENT_COLOR,
+    
     borderRadius: 20,
     padding: 20,
     marginHorizontal: 20,
     marginBottom: 20,
+  },
+  investmentCardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    minHeight: 160,
+    marginBottom: 2,
   },
   investmentLabel: {
     color: '#ffffff',
-    fontSize: 16,
-    marginBottom: 15,
+    fontSize: 14,
   },
+ 
   investmentAmount: {
     color: '#ffffff',
-    fontSize: 32,
+    fontSize: 24,
     fontWeight: 'bold',
-    marginVertical: 15,
-    textAlign: 'center',
-    width: '100%',
+    marginVertical: 2,
+    marginBottom: 10,
+  },
+  investmentGrowthContainer: {
+    flexDirection: 'row',
+    marginBottom: 15,
+  },
+  growthBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    paddingVertical: 4,
     paddingHorizontal: 10,
-    lineHeight: 40,
+    borderRadius: 12,
+  },
+  growthText: {
+    color: '#ffffff',
+    fontSize: 12,
+    marginLeft: 4,
+  },
+  metricsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 12,
+    padding: 15,
+  },
+  metricItem: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  metricDivider: {
+    width: 1,
+    height: 30,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    marginHorizontal: 10,
+  },
+  metricValue: {
+    color: '#ffffff',
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 4,
+  },
+  metricLabel: {
+    color: 'rgba(255, 255, 255, 0.7)',
+    fontSize: 12,
   },
   bottomSheetPlaceholder: {
     height: height * 0.4, // 40% of screen height for placeholder
@@ -567,3 +639,4 @@ const styles = StyleSheet.create({
     marginTop: 20,
   },
 });
+

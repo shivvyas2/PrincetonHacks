@@ -14,8 +14,6 @@ export default function SettingsScreen() {
   const { signOut } = useAuth();
   const router = useRouter();
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
-  const [darkModeEnabled, setDarkModeEnabled] = useState(true);
-  const [biometricsEnabled, setBiometricsEnabled] = useState(false);
   const [isBusinessOwner, setIsBusinessOwner] = useState(false);
 
   // Load user preferences when component mounts
@@ -102,7 +100,10 @@ export default function SettingsScreen() {
             <ThemedText style={styles.sectionTitle}>Account</ThemedText>
             
             <View style={styles.settingsCard}>
-              <TouchableOpacity style={styles.settingsItem}>
+              <TouchableOpacity 
+                style={styles.settingsItem}
+                onPress={() => router.push('/(stack)/settings/personal-info')}
+              >
                 <View style={styles.settingIconContainer}>
                   <Ionicons name="person-outline" size={22} color={PRIMARY_COLOR} />
                 </View>
@@ -120,18 +121,6 @@ export default function SettingsScreen() {
                 </View>
                 <View style={styles.settingContent}>
                   <ThemedText style={styles.settingTitle}>Payment Methods</ThemedText>
-                </View>
-                <Ionicons name="chevron-forward" size={20} color="#A4A4B8" />
-              </TouchableOpacity>
-              
-              <View style={styles.divider} />
-              
-              <TouchableOpacity style={styles.settingsItem}>
-                <View style={styles.settingIconContainer}>
-                  <Ionicons name="lock-closed-outline" size={22} color={PRIMARY_COLOR} />
-                </View>
-                <View style={styles.settingContent}>
-                  <ThemedText style={styles.settingTitle}>Security</ThemedText>
                 </View>
                 <Ionicons name="chevron-forward" size={20} color="#A4A4B8" />
               </TouchableOpacity>
@@ -161,40 +150,6 @@ export default function SettingsScreen() {
               
               <View style={styles.settingsItem}>
                 <View style={styles.settingIconContainer}>
-                  <Ionicons name="moon-outline" size={22} color={PRIMARY_COLOR} />
-                </View>
-                <View style={styles.settingContent}>
-                  <ThemedText style={styles.settingTitle}>Dark Mode</ThemedText>
-                </View>
-                <Switch
-                  value={darkModeEnabled}
-                  onValueChange={setDarkModeEnabled}
-                  trackColor={{ false: '#E5E5E5', true: ACCENT_COLOR }}
-                  thumbColor="#fff"
-                />
-              </View>
-              
-              <View style={styles.divider} />
-              
-              <View style={styles.settingsItem}>
-                <View style={styles.settingIconContainer}>
-                  <Ionicons name="finger-print-outline" size={22} color={PRIMARY_COLOR} />
-                </View>
-                <View style={styles.settingContent}>
-                  <ThemedText style={styles.settingTitle}>Biometric Authentication</ThemedText>
-                </View>
-                <Switch
-                  value={biometricsEnabled}
-                  onValueChange={setBiometricsEnabled}
-                  trackColor={{ false: '#E5E5E5', true: ACCENT_COLOR }}
-                  thumbColor="#fff"
-                />
-              </View>
-              
-              <View style={styles.divider} />
-              
-              <View style={styles.settingsItem}>
-                <View style={styles.settingIconContainer}>
                   <Ionicons name="business-outline" size={22} color={PRIMARY_COLOR} />
                 </View>
                 <View style={styles.settingContent}>
@@ -212,34 +167,6 @@ export default function SettingsScreen() {
                   thumbColor="#fff"
                 />
               </View>
-            </View>
-          </View>
-          
-          <View style={styles.section}>
-            <ThemedText style={styles.sectionTitle}>About</ThemedText>
-            
-            <View style={styles.settingsCard}>
-              <TouchableOpacity style={styles.settingsItem}>
-                <View style={styles.settingIconContainer}>
-                  <Ionicons name="information-circle-outline" size={22} color={PRIMARY_COLOR} />
-                </View>
-                <View style={styles.settingContent}>
-                  <ThemedText style={styles.settingTitle}>About Impact Invest</ThemedText>
-                </View>
-                <Ionicons name="chevron-forward" size={20} color="#A4A4B8" />
-              </TouchableOpacity>
-              
-              <View style={styles.divider} />
-              
-              <TouchableOpacity style={styles.settingsItem}>
-                <View style={styles.settingIconContainer}>
-                  <Ionicons name="help-circle-outline" size={22} color={PRIMARY_COLOR} />
-                </View>
-                <View style={styles.settingContent}>
-                  <ThemedText style={styles.settingTitle}>Help & Support</ThemedText>
-                </View>
-                <Ionicons name="chevron-forward" size={20} color="#A4A4B8" />
-              </TouchableOpacity>
             </View>
           </View>
           
@@ -341,7 +268,7 @@ const styles = StyleSheet.create({
     marginVertical: 30,
     backgroundColor: 'rgba(255, 59, 48, 0.1)',
     borderRadius: 10,
-    padding: 15,
+    padding: 25,
   },
   signOutIcon: {
     marginRight: 10,
@@ -355,3 +282,4 @@ const styles = StyleSheet.create({
     height: 40,
   },
 });
+
