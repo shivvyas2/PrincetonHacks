@@ -1,6 +1,6 @@
 import { View, StyleSheet, Image, TextInput, ScrollView, TouchableOpacity, SafeAreaView, Dimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useAuth } from '@clerk/clerk-expo';
+import { useAuth, useUser } from '@clerk/clerk-expo';
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { ThemedText } from '@/components/ThemedText';
 import { fetchBusinesses, fetchBusinessesByCategory, toggleFavorite } from '@/services/api';
@@ -40,6 +40,7 @@ interface Business {
 
 export default function HomeScreen() {
   const { isSignedIn, sessionId } = useAuth();
+  const { user } = useUser();
   const [investment, setInvestment] = useState('$2,400');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
@@ -47,6 +48,14 @@ export default function HomeScreen() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
+  // Get user name from Clerk
+  const userName = user ? 
+    (user.firstName || user.username || user.emailAddresses[0]?.emailAddress?.split('@')[0] || "Finance User") : 
+    "Finance User";
+  
+  // Get user avatar from Clerk
+  const userAvatar = user?.imageUrl || 'https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y';
+
   // Bottom sheet reference
   const bottomSheetRef = useRef<BottomSheet>(null);
   
@@ -72,74 +81,79 @@ export default function HomeScreen() {
     []
   );
   
-  // Placeholder user data since useAuth doesn't directly expose user info
-  const userName = "Natalie Workman";
-  const userAvatar = 'https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y';
+  useEffect(() => {
+    if (isSignedIn) {
+      loadBusinesses();
+    }
+  }, [isSignedIn]);
 
   useEffect(() => {
-    loadBusinesses();
-  }, []);
-
-  useEffect(() => {
-    loadBusinessesByCategory(selectedCategory);
-  }, [selectedCategory]);
+    if (isSignedIn) {
+      loadBusinessesByCategory(selectedCategory);
+    }
+  }, [selectedCategory, isSignedIn]);
 
   const loadBusinesses = async () => {
+    if (!user?.id) {
+      console.log('User not authenticated');
+      return;
+    }
+    
     setLoading(true);
-    setError(null);
     try {
-      const data = await fetchBusinesses();
+      const data = await fetchBusinesses(user?.id);
       setBusinessList(data);
+      setError(null);
     } catch (err) {
-      console.error('Error loading businesses:', err);
-      setError('Failed to load businesses. Please try again later.');
+      console.error('Error:', err);
+      setError('Failed to load businesses');
     } finally {
       setLoading(false);
     }
   };
 
   const loadBusinessesByCategory = async (category: string) => {
+    if (!user?.id) {
+      console.log('User not authenticated');
+      return;
+    }
+    
+    if (category === 'all') {
+      loadBusinesses();
+      return;
+    }
+    
     setLoading(true);
-    setError(null);
     try {
-      if (category === 'all') {
-        const data = await fetchBusinesses();
-        setBusinessList(data);
-      } else {
-        const data = await fetchBusinessesByCategory(category);
-        setBusinessList(data);
-      }
+      const data = await fetchBusinessesByCategory(category, user?.id);
+      setBusinessList(data);
+      setError(null);
     } catch (err) {
-      console.error('Error loading businesses by category:', err);
-      setError('Failed to load businesses. Please try again later.');
+      console.error('Error:', err);
+      setError(`Failed to load ${category} businesses`);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleToggleFavorite = async (businessId: string) => {
+  const handleToggleFavorite = async (id: string) => {
+    if (!user?.id) {
+      console.log('User not authenticated');
+      return;
+    }
+    
     try {
-      // Optimistically update UI
-      setBusinessList(prevList => 
-        prevList.map(business => 
-          business._id === businessId 
-            ? { ...business, favorite: !business.favorite } 
+      await toggleFavorite(id, user.id);
+      // Update the business list to reflect the change
+      setBusinessList(prevList =>
+        prevList.map(business =>
+          business.id === id
+            ? { ...business, favorite: !business.favorite }
             : business
         )
       );
-      
-      // Make API call to toggle favorite
-      await toggleFavorite(businessId);
     } catch (err) {
       console.error('Error toggling favorite:', err);
-      // Revert UI change if API call fails
-      setBusinessList(prevList => 
-        prevList.map(business => 
-          business._id === businessId 
-            ? { ...business, favorite: !business.favorite } 
-            : business
-        )
-      );
     }
   };
 

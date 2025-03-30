@@ -11,10 +11,70 @@ const API_URL = 'https://finance-app-backend-d3ay.onrender.com/api';
 
 console.log('Using API URL:', API_URL); // Debug log
 
-export const fetchBusinesses = async () => {
+// Helper function to add auth headers to requests
+const addAuthHeaders = (userId: string | null) => {
+  const headers: HeadersInit = {
+    'Content-Type': 'application/json',
+  };
+  
+  if (userId) {
+    // Add the Clerk user ID as an auth header
+    headers['X-User-ID'] = userId;
+  }
+  
+  return headers;
+};
+
+// Fetch user-specific data from MongoDB
+export const fetchUserData = async (userId: string) => {
+  try {
+    console.log('Fetching user data for:', userId);
+    const response = await fetch(`${API_URL}/users/${userId}`, {
+      headers: addAuthHeaders(userId),
+    });
+    
+    if (!response.ok) {
+      throw new Error('Failed to fetch user data');
+    }
+    
+    const data = await response.json();
+    console.log('Received user data:', data);
+    return data;
+  } catch (error) {
+    console.error('Error fetching user data:', error);
+    throw error;
+  }
+};
+
+// Create or update user data in MongoDB
+export const updateUserData = async (userId: string, userData: any) => {
+  try {
+    console.log('Updating user data for:', userId);
+    const response = await fetch(`${API_URL}/users/${userId}`, {
+      method: 'PUT',
+      headers: addAuthHeaders(userId),
+      body: JSON.stringify(userData),
+    });
+    
+    if (!response.ok) {
+      throw new Error('Failed to update user data');
+    }
+    
+    const data = await response.json();
+    console.log('User data updated:', data);
+    return data;
+  } catch (error) {
+    console.error('Error updating user data:', error);
+    throw error;
+  }
+};
+
+export const fetchBusinesses = async (userId?: string) => {
   try {
     console.log('Fetching from:', `${API_URL}/businesses`); // Debug log
-    const response = await fetch(`${API_URL}/businesses`);
+    const response = await fetch(`${API_URL}/businesses`, {
+      headers: addAuthHeaders(userId || null),
+    });
     if (!response.ok) {
       throw new Error('Failed to fetch businesses');
     }
@@ -27,9 +87,11 @@ export const fetchBusinesses = async () => {
   }
 };
 
-export const fetchBusinessesByCategory = async (category: string) => {
+export const fetchBusinessesByCategory = async (category: string, userId?: string) => {
   try {
-    const response = await fetch(`${API_URL}/businesses/category/${category}`);
+    const response = await fetch(`${API_URL}/businesses/category/${category}`, {
+      headers: addAuthHeaders(userId || null),
+    });
     if (!response.ok) {
       throw new Error('Failed to fetch businesses by category');
     }
@@ -40,17 +102,18 @@ export const fetchBusinessesByCategory = async (category: string) => {
   }
 };
 
-export const toggleFavorite = async (id: string) => {
+export const toggleFavorite = async (id: string, userId: string) => {
   try {
     const response = await fetch(`${API_URL}/businesses/${id}/favorite`, {
       method: 'PATCH',
+      headers: addAuthHeaders(userId),
     });
     if (!response.ok) {
       throw new Error('Failed to toggle favorite status');
     }
     return await response.json();
   } catch (error) {
-    console.error('Error toggling favorite:', error);
+    console.error('Error toggling favorite status:', error);
     throw error;
   }
-}; 
+};
