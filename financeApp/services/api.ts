@@ -6,20 +6,10 @@ const isDevelopment = process.env.NODE_ENV === 'development';
 const manifestProp = Constants.manifest2?.extra?.expoClient?.hostUri;
 const localIp = manifestProp ? manifestProp.split(':')[0] : '10.29.251.136';
 
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-const API_URL = `http://${localIp}:5001/api`;
-=======
-=======
->>>>>>> Stashed changes
 // Use local IP in development, production URL in production
 const API_URL = 'https://finance-app-backend-d3ay.onrender.com/api';
 
 console.log('Using API URL:', API_URL); // Debug log
-<<<<<<< Updated upstream
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
 
 export const fetchBusinesses = async () => {
   try {
