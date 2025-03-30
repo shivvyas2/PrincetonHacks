@@ -1,7 +1,7 @@
 import { View, StyleSheet, SafeAreaView, TouchableOpacity, Switch, Alert, ScrollView } from 'react-native';
 import { ThemedText } from '@/components/ThemedText';
 import { Ionicons } from '@expo/vector-icons';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '@clerk/clerk-expo';
 import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -16,6 +16,42 @@ export default function SettingsScreen() {
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [darkModeEnabled, setDarkModeEnabled] = useState(true);
   const [biometricsEnabled, setBiometricsEnabled] = useState(false);
+  const [isBusinessOwner, setIsBusinessOwner] = useState(false);
+
+  // Load user preferences when component mounts
+  useEffect(() => {
+    const loadUserPreferences = async () => {
+      try {
+        const storedIsBusinessOwner = await AsyncStorage.getItem('isBusinessOwner');
+        if (storedIsBusinessOwner !== null) {
+          setIsBusinessOwner(storedIsBusinessOwner === 'true');
+        }
+      } catch (error) {
+        console.error('Error loading user preferences:', error);
+      }
+    };
+
+    loadUserPreferences();
+  }, []);
+
+  // Save business owner status when it changes
+  const handleBusinessOwnerToggle = async (value: boolean) => {
+    setIsBusinessOwner(value);
+    try {
+      await AsyncStorage.setItem('isBusinessOwner', value.toString());
+      
+      // Show feedback to the user about the mode change
+      Alert.alert(
+        value ? "Business Owner Mode Activated" : "Investor Mode Activated",
+        value 
+          ? "You'll now see the app from a business owner's perspective." 
+          : "You'll now see the app from an investor's perspective.",
+        [{ text: "OK" }]
+      );
+    } catch (error) {
+      console.error('Error saving business owner status:', error);
+    }
+  };
 
   const handleSignOut = async () => {
     Alert.alert(
@@ -154,6 +190,28 @@ export default function SettingsScreen() {
                   thumbColor="#fff"
                 />
               </View>
+              
+              <View style={styles.divider} />
+              
+              <View style={styles.settingsItem}>
+                <View style={styles.settingIconContainer}>
+                  <Ionicons name="business-outline" size={22} color={PRIMARY_COLOR} />
+                </View>
+                <View style={styles.settingContent}>
+                  <ThemedText style={styles.settingTitle}>Business Owner Mode</ThemedText>
+                  <ThemedText style={styles.settingDescription}>
+                    {isBusinessOwner 
+                      ? "View the app as a business owner" 
+                      : "View the app as an investor"}
+                  </ThemedText>
+                </View>
+                <Switch
+                  value={isBusinessOwner}
+                  onValueChange={handleBusinessOwnerToggle}
+                  trackColor={{ false: '#E5E5E5', true: ACCENT_COLOR }}
+                  thumbColor="#fff"
+                />
+              </View>
             </View>
           </View>
           
@@ -265,6 +323,10 @@ const styles = StyleSheet.create({
   settingTitle: {
     fontSize: 16,
     color: '#333',
+  },
+  settingDescription: {
+    fontSize: 14,
+    color: '#666',
   },
   divider: {
     height: 1,
