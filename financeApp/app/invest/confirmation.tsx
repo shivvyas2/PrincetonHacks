@@ -3,6 +3,10 @@ import { ThemedText } from '@/components/ThemedText';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
+// App theme colors
+const PRIMARY_COLOR = '#1E3A5F'; // Dark blue as primary color
+const ACCENT_COLOR = '#3A6491'; // Medium blue as accent
+
 export default function ConfirmationScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
@@ -55,7 +59,7 @@ export default function ConfirmationScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: PRIMARY_COLOR,
     padding: 20,
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -67,11 +71,12 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 32,
     fontWeight: 'bold',
+    color: '#fff',
   },
   subtitle: {
     fontSize: 36,
     fontWeight: 'bold',
-    color: '#6200EE',
+    color: ACCENT_COLOR,
     marginTop: 5,
   },
   confettiContainer: {
@@ -121,6 +126,7 @@ const styles = StyleSheet.create({
     fontSize: 20,
     textAlign: 'center',
     marginBottom: 10,
+    color: '#fff',
   },
   amount: {
     color: '#00C853',
@@ -128,7 +134,7 @@ const styles = StyleSheet.create({
   },
   businessText: {
     fontSize: 14,
-    color: '#666',
+    color: '#fff',
     textAlign: 'center',
     maxWidth: '80%',
   },
@@ -144,11 +150,11 @@ const styles = StyleSheet.create({
     marginBottom: 15,
   },
   portfolioButtonText: {
-    color: '#6200EE',
+    color: PRIMARY_COLOR,
     fontSize: 16,
   },
   exploreButton: {
-    backgroundColor: '#6200EE',
+    backgroundColor: PRIMARY_COLOR,
     padding: 15,
     borderRadius: 25,
     alignItems: 'center',

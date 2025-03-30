@@ -224,7 +224,7 @@ export default function InvestScreen() {
             </TouchableOpacity>
             
             <TouchableOpacity 
-              style={styles.investButton} 
+              style={styles.bottomSheetInvestButton} 
               onPress={() => {
                 setBottomSheetVisible(false);
                 if (currentBusiness) {
@@ -247,7 +247,7 @@ export default function InvestScreen() {
                 }
               }}
             >
-              <ThemedText style={styles.investButtonText}>Invest Now</ThemedText>
+              <ThemedText style={styles.bottomSheetInvestButtonText}>Invest Now</ThemedText>
             </TouchableOpacity>
             
             <TouchableOpacity 
@@ -399,15 +399,15 @@ const styles = StyleSheet.create({
   },
   investButton: {
     backgroundColor: PRIMARY_COLOR,
-    borderRadius: 12,
     paddingVertical: 12,
     alignItems: 'center',
     marginTop: 8,
+    borderRadius: 12,
   },
   investButtonText: {
     color: '#fff',
-    fontSize: 16,
     fontWeight: 'bold',
+    fontSize: 16,
   },
   bottomSheetOverlay: {
     flex: 1,
@@ -532,7 +532,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#6200EE',
   },
-  investButton: {
+  bottomSheetInvestButton: {
     backgroundColor: '#6200EE',
     padding: 15,
     borderRadius: 25,
@@ -540,7 +540,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 10,
   },
-  investButtonText: {
+  bottomSheetInvestButtonText: {
     color: '#fff',
     fontSize: 16,
     fontWeight: 'bold',

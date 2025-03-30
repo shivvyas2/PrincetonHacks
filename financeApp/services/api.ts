@@ -4,7 +4,7 @@ import Constants from 'expo-constants';
 const manifestProp = Constants.manifest2?.extra?.expoClient?.hostUri;
 const localIp = manifestProp ? manifestProp.split(':')[0] : '10.29.251.136';
 
-const API_URL = `http://${localIp}:5000/api`;
+const API_URL = `http://${localIp}:5001/api`;
 
 export const fetchBusinesses = async () => {
   try {

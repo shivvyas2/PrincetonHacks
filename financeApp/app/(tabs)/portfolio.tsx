@@ -1,103 +1,319 @@
-import { View, StyleSheet, SafeAreaView, ScrollView } from 'react-native';
+import React, { useState } from 'react';
+import { View, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity, TextInput, Image, Dimensions } from 'react-native';
 import { ThemedText } from '@/components/ThemedText';
 import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
+import { LineChart } from 'react-native-chart-kit';
+
+// App theme colors
+const PRIMARY_COLOR = '#1E3A5F'; // Dark blue as primary color
+const ACCENT_COLOR = '#3A6491'; // Medium blue as accent
+const SECONDARY_COLOR = '#1E3A5F'; // Updated to match theme
+
+// Profit sharing strategy
+const PROFIT_SHARING_PERCENTAGE = 0.25; // 25% of profits go to investors
+const PROFIT_DISTRIBUTION_THRESHOLD = 1000; // Minimum profit before distribution
+
+// Mock data
+const portfolioData = {
+  totalInvestment: 12565058,
+  totalProfit: 1890142,
+  profitPercentage: 15.04,
+  projects: [
+    {
+      id: 1,
+      name: "Eco-Friendly Packaging Solutions",
+      image: require("@/assets/images/Center Content.png"),
+      investedAmount: 7250,
+      progress: 0.65,
+      returnAmount: 22342,
+      returnPercentage: 3.4,
+      date: "July 19, 2023, 3:43:55 pm"
+    },
+    {
+      id: 2,
+      name: "Planting Trees for Greener Tomorrow",
+      image: require("@/assets/images/Center Content2.png"),
+      investedAmount: 7250,
+      progress: 0.65,
+      returnAmount: 22342,
+      returnPercentage: 3.4,
+      date: "July 19, 2023, 3:43:55 pm"
+    },
+    {
+      id: 3,
+      name: "Clean Water For All",
+      image: require("@/assets/images/Center Content.png"),
+      investedAmount: 7250,
+      progress: 0.65,
+      returnAmount: 22342,
+      returnPercentage: 3.4,
+      date: "July 19, 2023, 3:43:55 pm"
+    }
+  ],
+  transactions: [
+    { id: 1, projectId: 1, type: "investment", amount: 3021, date: "July 19, 2023" },
+    { id: 2, projectId: 2, type: "withdrawal", amount: 3021, date: "July 19, 2023" },
+    { id: 3, projectId: 3, type: "dividends", amount: 3021, date: "July 19, 2023" }
+  ],
+  chartData: {
+    labels: ["Jan", "Feb", "Mar", "Apr", "May", "Jun"],
+    datasets: [
+      {
+        data: [
+          10000,
+          25000,
+          15000,
+          30000,
+          45000,
+          60000
+        ],
+        color: (opacity = 1) => `rgba(71, 159, 215, ${opacity})`, // PRIMARY_COLOR with opacity
+        strokeWidth: 2
+      }
+    ],
+    legend: ["Portfolio Value"]
+  }
+};
 
 export default function PortfolioScreen() {
+  const router = useRouter();
+  const [activeTab, setActiveTab] = useState('performance');
+  const [selectedTimeFilter, setSelectedTimeFilter] = useState('1Y');
+  
+  // Format currency
+  const formatCurrency = (amount: number): string => `$${amount.toLocaleString()}`;
+  
+  // Chart configuration
+  const chartConfig = {
+    backgroundGradientFrom: "#ffffff",
+    backgroundGradientTo: "#ffffff",
+    decimalPlaces: 0,
+    color: (opacity = 1) => `rgba(71, 159, 215, ${opacity})`,
+    labelColor: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
+    style: {
+      borderRadius: 16
+    },
+    propsForDots: {
+      r: "6",
+      strokeWidth: "2",
+      stroke: PRIMARY_COLOR
+    }
+  };
+  
+  // Screen width for chart
+  const screenWidth = Dimensions.get("window").width - 40; // -40 for padding
+  
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <ThemedText style={styles.headerTitle}>Your Portfolio</ThemedText>
+      {/* Header */}
+    
+      {/* Portfolio Summary Card */}
+      <View style={styles.summaryCard}>
+        <TouchableOpacity style={styles.dividendsButton}>
+          <ThemedText style={styles.dividendsText}>Dividends</ThemedText>
+          <Ionicons name="chevron-forward" size={20} color="#fff" />
+        </TouchableOpacity>
+        
+        <View style={styles.totalInvestment}>
+          <ThemedText style={styles.totalInvestmentLabel}>Total Investment (12 Projects)</ThemedText>
+          <ThemedText style={styles.totalInvestmentValue}>{formatCurrency(portfolioData.totalInvestment)}</ThemedText>
+          <ThemedText style={styles.profitText}>+{formatCurrency(portfolioData.totalProfit)} ({portfolioData.profitPercentage}%)</ThemedText>
+        </View>
       </View>
       
-      <ScrollView style={styles.scrollView}>
-        <View style={styles.summaryCard}>
-          <ThemedText style={styles.summaryTitle}>Total Investment</ThemedText>
-          <ThemedText style={styles.summaryAmount}>£12,565,058</ThemedText>
-          <View style={styles.summaryRow}>
-            <View style={styles.summaryItem}>
-              <Ionicons name="trending-up-outline" size={20} color="#4ADE80" />
-              <ThemedText style={styles.summaryProfit}>+£1,245</ThemedText>
-              <ThemedText style={styles.summaryLabel}>This month</ThemedText>
+      {/* Tabs */}
+      <View style={styles.tabsContainer}>
+        <TouchableOpacity 
+          style={[styles.tab, activeTab === 'performance' && styles.activeTab]} 
+          onPress={() => setActiveTab('performance')}
+        >
+          <ThemedText style={[styles.tabText, activeTab === 'performance' && styles.activeTabText]}>Performance</ThemedText>
+        </TouchableOpacity>
+        <TouchableOpacity 
+          style={[styles.tab, activeTab === 'history' && styles.activeTab]} 
+          onPress={() => setActiveTab('history')}
+        >
+          <ThemedText style={[styles.tabText, activeTab === 'history' && styles.activeTabText]}>History</ThemedText>
+        </TouchableOpacity>
+        <TouchableOpacity 
+          style={[styles.tab, activeTab === 'analytics' && styles.activeTab]} 
+          onPress={() => setActiveTab('analytics')}
+        >
+          <ThemedText style={[styles.tabText, activeTab === 'analytics' && styles.activeTabText]}>Analytics</ThemedText>
+        </TouchableOpacity>
+      </View>
+      
+      {/* Content based on active tab */}
+      <ScrollView style={styles.content}>
+        {activeTab === 'performance' && (
+          <>
+            <View style={styles.sectionHeader}>
+              <ThemedText style={styles.sectionTitle}>Portfolio Insight</ThemedText>
+              <ThemedText style={styles.sectionSubtitle}>Track your investments and their performance in one place.</ThemedText>
             </View>
-            <View style={styles.summaryItem}>
-              <Ionicons name="pie-chart-outline" size={20} color="#7C3AED" />
-              <ThemedText style={styles.summaryCount}>8</ThemedText>
-              <ThemedText style={styles.summaryLabel}>Investments</ThemedText>
+            
+            {/* Chart */}
+            <View style={styles.chartContainer}>
+              <LineChart
+                data={portfolioData.chartData}
+                width={screenWidth}
+                height={220}
+                chartConfig={chartConfig}
+                bezier
+                style={styles.chart}
+              />
+              
+              <View style={styles.chartValueContainer}>
+                <ThemedText style={styles.chartDate}>29 July 00:00</ThemedText>
+                <ThemedText style={styles.chartValue}>${(60000).toLocaleString()}</ThemedText>
+                <ThemedText style={styles.chartPercentage}>+3.4%</ThemedText>
+              </View>
             </View>
-          </View>
-        </View>
+            
+            {/* Time filters */}
+            <View style={styles.timeFilters}>
+              {['1M', '3M', '6M', '9M', '1Y', '3Y'].map((filter) => (
+                <TouchableOpacity 
+                  key={filter}
+                  style={[styles.timeFilter, selectedTimeFilter === filter && styles.activeTimeFilter]}
+                  onPress={() => setSelectedTimeFilter(filter)}
+                >
+                  <ThemedText 
+                    style={[styles.timeFilterText, selectedTimeFilter === filter && styles.activeTimeFilterText]}
+                  >
+                    {filter}
+                  </ThemedText>
+                </TouchableOpacity>
+              ))}
+            </View>
+            
+            {/* My Projects */}
+            <View style={styles.myProjectsHeader}>
+              <ThemedText style={styles.myProjectsTitle}>My Project</ThemedText>
+              <TouchableOpacity>
+                <ThemedText style={styles.viewAllText}>View All</ThemedText>
+              </TouchableOpacity>
+            </View>
+            
+            {/* Project List */}
+            {portfolioData.projects.map(project => (
+              <TouchableOpacity 
+                key={project.id} 
+                style={styles.projectItem}
+              >
+                <Image source={project.image} style={styles.projectImage} />
+                <View style={styles.projectInfo}>
+                  <View style={styles.projectNameContainer}>
+                    <ThemedText style={styles.projectName} numberOfLines={1}>{project.name}</ThemedText>
+                    <View style={styles.projectReturn}>
+                      <Ionicons name="trending-up" size={16} color="#00C853" />
+                      <ThemedText style={styles.projectReturnText}>${project.returnAmount.toLocaleString()} (+{project.returnPercentage}%)</ThemedText>
+                    </View>
+                  </View>
+                  <View style={styles.projectProgressContainer}>
+                    <View style={styles.projectProgressBar}>
+                      <View 
+                        style={[
+                          styles.projectProgressFill, 
+                          { width: `${project.progress * 100}%` }
+                        ]} 
+                      />
+                    </View>
+                    <View style={styles.projectAmounts}>
+                      <ThemedText style={styles.projectInvestedAmount}>${project.investedAmount.toLocaleString()}</ThemedText>
+                      <ThemedText style={styles.projectProgressPercentage}>{project.progress * 100}%</ThemedText>
+                    </View>
+                  </View>
+                </View>
+              </TouchableOpacity>
+            ))}
+          </>
+        )}
         
-        <View style={styles.section}>
-          <ThemedText style={styles.sectionTitle}>Your Impact</ThemedText>
-          <View style={styles.impactCard}>
-            <View style={styles.impactRow}>
-              <View style={styles.impactItem}>
-                <Ionicons name="leaf-outline" size={24} color="#4ADE80" />
-                <ThemedText style={styles.impactCount}>24</ThemedText>
-                <ThemedText style={styles.impactLabel}>Trees Planted</ThemedText>
-              </View>
-              <View style={styles.impactItem}>
-                <Ionicons name="water-outline" size={24} color="#60A5FA" />
-                <ThemedText style={styles.impactCount}>1.2K</ThemedText>
-                <ThemedText style={styles.impactLabel}>Water Saved (L)</ThemedText>
-              </View>
+        {activeTab === 'history' && (
+          <>
+            <View style={styles.sectionHeader}>
+              <ThemedText style={styles.sectionTitle}>Transaction History</ThemedText>
+              <ThemedText style={styles.sectionSubtitle}>Track your investment and their performance in one place.</ThemedText>
             </View>
-            <View style={styles.impactRow}>
-              <View style={styles.impactItem}>
-                <Ionicons name="people-outline" size={24} color="#F97316" />
-                <ThemedText style={styles.impactCount}>56</ThemedText>
-                <ThemedText style={styles.impactLabel}>People Helped</ThemedText>
-              </View>
-              <View style={styles.impactItem}>
-                <Ionicons name="globe-outline" size={24} color="#3B82F6" />
-                <ThemedText style={styles.impactCount}>3.4</ThemedText>
-                <ThemedText style={styles.impactLabel}>CO₂ Reduced (t)</ThemedText>
-              </View>
-            </View>
-          </View>
-        </View>
+            
+            {/* Transaction List */}
+            {portfolioData.transactions.map(transaction => {
+              const project = portfolioData.projects.find(p => p.id === transaction.projectId);
+              if (!project) return null;
+              
+              let transactionColor = '#00C853'; // Default green for investment
+              
+              if (transaction.type === 'withdrawal') {
+                transactionColor = '#6200EE'; // Purple for withdrawal
+              } else if (transaction.type === 'dividends') {
+                transactionColor = '#FFA000'; // Amber for dividends
+              }
+              
+              return (
+                <View key={transaction.id} style={styles.transactionItem}>
+                  <Image source={project.image} style={styles.transactionImage} />
+                  <View style={styles.transactionInfo}>
+                    <ThemedText style={styles.transactionProjectName} numberOfLines={1}>{project.name}</ThemedText>
+                    <ThemedText style={styles.transactionDate}>{transaction.date}</ThemedText>
+                  </View>
+                  <View style={styles.transactionAmount}>
+                    <ThemedText 
+                      style={[
+                        styles.transactionAmountText, 
+                        { color: transactionColor }
+                      ]}
+                    >
+                      {transaction.type === 'investment' ? '-' : '+'}${transaction.amount.toLocaleString()}
+                    </ThemedText>
+                    <View style={[styles.transactionTypeIndicator, { backgroundColor: transactionColor }]}>
+                      <ThemedText style={styles.transactionTypeText}>{transaction.type}</ThemedText>
+                    </View>
+                  </View>
+                </View>
+              );
+            })}
+          </>
+        )}
         
-        <View style={styles.section}>
-          <ThemedText style={styles.sectionTitle}>Recent Activity</ThemedText>
-          <View style={styles.activityCard}>
-            <View style={styles.activityItem}>
-              <View style={styles.activityIcon}>
-                <Ionicons name="arrow-up-outline" size={16} color="#fff" />
-              </View>
-              <View style={styles.activityContent}>
-                <ThemedText style={styles.activityTitle}>Invested in Business 1</ThemedText>
-                <ThemedText style={styles.activityDate}>April 15, 2025</ThemedText>
-              </View>
-              <ThemedText style={styles.activityAmount}>£500</ThemedText>
+        {activeTab === 'analytics' && (
+          <>
+            <View style={styles.sectionHeader}>
+              <ThemedText style={styles.sectionTitle}>Project Performance</ThemedText>
+              <ThemedText style={styles.sectionSubtitle}>Track your investment and their performance in one place.</ThemedText>
             </View>
             
-            <View style={styles.divider} />
-            
-            <View style={styles.activityItem}>
-              <View style={[styles.activityIcon, styles.depositIcon]}>
-                <Ionicons name="arrow-down-outline" size={16} color="#fff" />
+            {/* Analytics content here */}
+            <View style={styles.analyticsContainer}>
+              <View style={styles.analyticsCard}>
+                <ThemedText style={styles.analyticsTitle}>Profit Distribution</ThemedText>
+                <ThemedText style={styles.analyticsSubtitle}>When businesses generate profit:</ThemedText>
+                
+                <View style={styles.profitSharingInfo}>
+                  <View style={styles.profitSharingItem}>
+                    <View style={[styles.profitSharingIndicator, { backgroundColor: '#00C853' }]} />
+                    <ThemedText style={styles.profitSharingText}>{PROFIT_SHARING_PERCENTAGE * 100}% to Investors</ThemedText>
+                  </View>
+                  <View style={styles.profitSharingItem}>
+                    <View style={[styles.profitSharingIndicator, { backgroundColor: '#FFA000' }]} />
+                    <ThemedText style={styles.profitSharingText}>{(1 - PROFIT_SHARING_PERCENTAGE) * 100}% to Business</ThemedText>
+                  </View>
+                </View>
+                
+                <ThemedText style={styles.profitThresholdText}>
+                  * Profits are distributed when they exceed ${PROFIT_DISTRIBUTION_THRESHOLD.toLocaleString()}
+                </ThemedText>
               </View>
-              <View style={styles.activityContent}>
-                <ThemedText style={styles.activityTitle}>Deposit</ThemedText>
-                <ThemedText style={styles.activityDate}>April 10, 2025</ThemedText>
+              
+              <View style={styles.analyticsCard}>
+                <ThemedText style={styles.analyticsTitle}>Your Profit Share</ThemedText>
+                <ThemedText style={styles.analyticsValue}>${(portfolioData.totalProfit * PROFIT_SHARING_PERCENTAGE).toLocaleString()}</ThemedText>
+                <ThemedText style={styles.analyticsSubtitle}>Total profit share received</ThemedText>
               </View>
-              <ThemedText style={styles.depositAmount}>£2,000</ThemedText>
             </View>
-            
-            <View style={styles.divider} />
-            
-            <View style={styles.activityItem}>
-              <View style={styles.activityIcon}>
-                <Ionicons name="arrow-up-outline" size={16} color="#fff" />
-              </View>
-              <View style={styles.activityContent}>
-                <ThemedText style={styles.activityTitle}>Invested in Business 2</ThemedText>
-                <ThemedText style={styles.activityDate}>April 5, 2025</ThemedText>
-              </View>
-              <ThemedText style={styles.activityAmount}>£750</ThemedText>
-            </View>
-          </View>
-        </View>
+          </>
+        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -106,145 +322,314 @@ export default function PortfolioScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#14142B',
-  },
-  header: {
-    paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 15,
-  },
-  headerTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#ffffff',
-  },
-  scrollView: {
-    flex: 1,
-    paddingHorizontal: 20,
+    backgroundColor: '#fff',
   },
   summaryCard: {
-    backgroundColor: '#6C5DD3',
+    backgroundColor: SECONDARY_COLOR,
     borderRadius: 20,
     padding: 20,
-    marginBottom: 20,
+    margin: 20,
+    marginTop: 0,
   },
-  summaryTitle: {
-    fontSize: 16,
-    color: '#ffffff',
-    opacity: 0.8,
-  },
-  summaryAmount: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: '#ffffff',
-    marginVertical: 10,
-  },
-  summaryRow: {
+  dividendsButton: {
     flexDirection: 'row',
-    marginTop: 10,
-  },
-  summaryItem: {
-    flex: 1,
-    flexDirection: 'column',
-    alignItems: 'flex-start',
-  },
-  summaryProfit: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#4ADE80',
-    marginVertical: 5,
-  },
-  summaryCount: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#ffffff',
-    marginVertical: 5,
-  },
-  summaryLabel: {
-    fontSize: 14,
-    color: '#ffffff',
-    opacity: 0.7,
-  },
-  section: {
-    marginBottom: 20,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#ffffff',
-    marginBottom: 10,
-  },
-  impactCard: {
-    backgroundColor: '#22223A',
-    borderRadius: 15,
-    padding: 15,
-  },
-  impactRow: {
-    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: 'rgba(0,0,0,0.2)',
+    borderRadius: 20,
+    padding: 10,
+    paddingHorizontal: 15,
     marginBottom: 15,
   },
-  impactItem: {
-    flex: 1,
-    alignItems: 'center',
-    padding: 10,
+  dividendsText: {
+    color: '#fff',
+    fontWeight: '600',
   },
-  impactCount: {
+  totalInvestment: {
+    marginTop: 5,
+  },
+  totalInvestmentLabel: {
+    color: 'rgba(255,255,255,0.7)',
+    fontSize: 14,
+  },
+  totalInvestmentValue: {
+    color: '#fff',
+    fontSize: 25,
+    fontWeight: 'bold',
+    marginTop: 5,
+  },
+  profitText: {
+    color: '#4CAF50',
+    fontSize: 14,
+    marginTop: 5,
+  },
+  tabsContainer: {
+    flexDirection: 'row',
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+    marginHorizontal: 20,
+  },
+  tab: {
+    paddingVertical: 15,
+    marginRight: 20,
+  },
+  activeTab: {
+    borderBottomWidth: 2,
+    borderBottomColor: PRIMARY_COLOR,
+  },
+  tabText: {
+    color: '#666',
+  },
+  activeTabText: {
+    color: PRIMARY_COLOR,
+    fontWeight: '600',
+  },
+  content: {
+    flex: 1,
+    paddingHorizontal: 20,
+  },
+  sectionHeader: {
+    marginTop: 20,
+    marginBottom: 15,
+  },
+  sectionTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#ffffff',
-    marginVertical: 5,
+    marginBottom: 5,
   },
-  impactLabel: {
+  sectionSubtitle: {
+    color: '#666',
     fontSize: 14,
-    color: '#A4A4B8',
-    textAlign: 'center',
   },
-  activityCard: {
-    backgroundColor: '#22223A',
-    borderRadius: 15,
-    padding: 15,
+  chartContainer: {
+    backgroundColor: '#fff',
+    borderRadius: 10,
+    padding: 10,
+    marginTop: 10,
+    marginBottom: 15,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
   },
-  activityItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 10,
-  },
-  activityIcon: {
-    width: 32,
-    height: 32,
+  chart: {
+    marginVertical: 8,
     borderRadius: 16,
-    backgroundColor: '#7C3AED',
-    justifyContent: 'center',
+  },
+  chartValueContainer: {
+    position: 'absolute',
+    top: 40,
+    right: 40,
+    backgroundColor: '#fff',
+    padding: 10,
+    borderRadius: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  chartDate: {
+    fontSize: 12,
+    color: '#666',
+  },
+  chartValue: {
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  chartPercentage: {
+    fontSize: 12,
+    color: '#00C853',
+  },
+  timeFilters: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 20,
+  },
+  timeFilter: {
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 20,
+  },
+  activeTimeFilter: {
+    backgroundColor: SECONDARY_COLOR,
+  },
+  timeFilterText: {
+    fontSize: 12,
+    color: '#666',
+  },
+  activeTimeFilterText: {
+    color: '#fff',
+  },
+  myProjectsHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
+    marginTop: 10,
+    marginBottom: 15,
+  },
+  myProjectsTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  viewAllText: {
+    color: SECONDARY_COLOR,
+    fontSize: 14,
+  },
+  projectItem: {
+    flexDirection: 'row',
+    marginBottom: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+    paddingBottom: 15,
+  },
+  projectImage: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
     marginRight: 15,
   },
-  depositIcon: {
-    backgroundColor: '#4ADE80',
-  },
-  activityContent: {
+  projectInfo: {
     flex: 1,
   },
-  activityTitle: {
-    fontSize: 16,
-    color: '#ffffff',
+  projectNameContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 5,
   },
-  activityDate: {
+  projectName: {
+    fontSize: 16,
+    fontWeight: '600',
+    flex: 1,
+  },
+  projectReturn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  projectReturnText: {
+    fontSize: 12,
+    color: '#00C853',
+    marginLeft: 5,
+  },
+  projectProgressContainer: {
+    marginTop: 5,
+  },
+  projectProgressBar: {
+    height: 6,
+    backgroundColor: '#f0f0f0',
+    borderRadius: 3,
+    marginBottom: 5,
+  },
+  projectProgressFill: {
+    height: '100%',
+    backgroundColor: PRIMARY_COLOR,
+    borderRadius: 3,
+  },
+  projectAmounts: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  projectInvestedAmount: {
     fontSize: 14,
-    color: '#A4A4B8',
+    fontWeight: '600',
   },
-  activityAmount: {
+  projectProgressPercentage: {
+    fontSize: 14,
+    color: '#666',
+  },
+  transactionItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 15,
+    paddingBottom: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  transactionImage: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    marginRight: 15,
+  },
+  transactionInfo: {
+    flex: 1,
+  },
+  transactionProjectName: {
     fontSize: 16,
-    fontWeight: 'bold',
-    color: '#7C3AED',
+    fontWeight: '600',
+    marginBottom: 5,
   },
-  depositAmount: {
+  transactionDate: {
+    fontSize: 12,
+    color: '#666',
+  },
+  transactionAmount: {
+    alignItems: 'flex-end',
+  },
+  transactionAmountText: {
+    fontSize: 14,
+    fontWeight: '600',
+    marginBottom: 5,
+  },
+  transactionTypeIndicator: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 10,
+  },
+  transactionTypeText: {
+    color: '#fff',
+    fontSize: 10,
+    fontWeight: '600',
+  },
+  analyticsContainer: {
+    marginTop: 10,
+    marginBottom: 20,
+  },
+  analyticsCard: {
+    backgroundColor: '#f9f9f9',
+    borderRadius: 10,
+    padding: 15,
+    marginBottom: 15,
+  },
+  analyticsTitle: {
     fontSize: 16,
-    fontWeight: 'bold',
-    color: '#4ADE80',
+    fontWeight: '600',
+    marginBottom: 10,
   },
-  divider: {
-    height: 1,
-    backgroundColor: '#333',
-    marginVertical: 5,
+  analyticsValue: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: SECONDARY_COLOR,
+    marginBottom: 5,
+  },
+  analyticsSubtitle: {
+    fontSize: 14,
+    color: '#666',
+  },
+  profitSharingInfo: {
+    marginTop: 15,
+    marginBottom: 10,
+  },
+  profitSharingItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  profitSharingIndicator: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    marginRight: 10,
+  },
+  profitSharingText: {
+    fontSize: 14,
+  },
+  profitThresholdText: {
+    fontSize: 12,
+    color: '#666',
+    fontStyle: 'italic',
+    marginTop: 5,
   },
 });

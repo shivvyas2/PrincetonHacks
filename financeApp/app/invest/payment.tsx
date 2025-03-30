@@ -4,8 +4,9 @@ import { ThemedText } from '@/components/ThemedText';
 import { Ionicons } from '@expo/vector-icons';
 import { useState } from 'react';
 
-// App theme color
-const PRIMARY_COLOR = '#479fd7';
+// App theme colors
+const PRIMARY_COLOR = '#1E3A5F'; // Dark blue as primary color
+const ACCENT_COLOR = '#3A6491'; // Medium blue as accent
 
 interface PaymentOption {
   id: string;
@@ -203,7 +204,7 @@ export default function PaymentScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#252039', // Dark purple background as shown in mockups
+    backgroundColor: '#1E3A5F', // Dark blue background as shown in mockups
   },
   header: {
     flexDirection: 'row',
