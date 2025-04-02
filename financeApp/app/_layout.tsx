@@ -9,7 +9,7 @@ import { ClerkProvider, useAuth } from '@clerk/clerk-expo';
 import * as SecureStore from 'expo-secure-store';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { Platform, View, StyleSheet } from 'react-native';
+import { Platform, View, StyleSheet, Text } from 'react-native';
 import Constants from 'expo-constants';
 
 import { useColorScheme } from '@/hooks/useColorScheme';
@@ -33,7 +33,10 @@ const tokenCache = {
 };
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
-SplashScreen.preventAutoHideAsync();
+SplashScreen.preventAutoHideAsync().catch(() => {
+  console.warn('Failed to prevent splash screen auto hide');
+  // Continue app initialization even if splash screen handling fails
+});
 
 // Auth protection component that handles navigation
 function InitialRoute() {
@@ -78,28 +81,49 @@ function CustomStatusBar() {
 }
 
 export default function RootLayout() {
-  const [loaded, error] = useFonts({
+  const [fontsLoaded, fontError] = useFonts({
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
   });
-
+  
+  const [isReady, setIsReady] = useState(false);
   const colorScheme = useColorScheme();
 
   // Expo Router uses Error Boundaries to catch errors in the navigation tree.
   useEffect(() => {
-    if (error) throw error;
-  }, [error]);
-
-  useEffect(() => {
-    if (loaded) {
-      SplashScreen.hideAsync();
+    if (fontError) {
+      console.error('Font loading error:', fontError);
+      // Continue without the font rather than freezing
+      setIsReady(true);
+      SplashScreen.hideAsync().catch(console.error);
     }
-  }, [loaded]);
+  }, [fontError]);
 
   useEffect(() => {
-    console.log('Clerk Key:', process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY);
-  }, []);
+    // Set a timeout to ensure the splash screen eventually hides even if other processes fail
+    const splashTimeout = setTimeout(() => {
+      if (!isReady) {
+        console.warn('Forcing splash screen hide after timeout');
+        setIsReady(true);
+        SplashScreen.hideAsync().catch(console.error);
+      }
+    }, 3000); // 3 second safety timeout
+    
+    return () => clearTimeout(splashTimeout);
+  }, [isReady]);
 
-  if (!loaded) {
+  useEffect(() => {
+    if (fontsLoaded) {
+      // Wrap in a small timeout to ensure UI is ready
+      setTimeout(() => {
+        setIsReady(true);
+        SplashScreen.hideAsync().catch((err) => {
+          console.error('Error hiding splash screen:', err);
+        });
+      }, 100);
+    }
+  }, [fontsLoaded]);
+
+  if (!isReady) {
     return null;
   }
 
