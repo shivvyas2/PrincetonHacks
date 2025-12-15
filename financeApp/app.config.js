@@ -1,0 +1,59 @@
+require('dotenv').config();
+
+module.exports = {
+  expo: {
+    name: "financeApp",
+    slug: "financeApp",
+    version: "1.0.0",
+    orientation: "portrait",
+    icon: "./assets/images/logo.png",
+    scheme: "myapp",
+    userInterfaceStyle: "automatic",
+    newArchEnabled: false,
+    ios: {
+      supportsTablet: true,
+      bundleIdentifier: "com.shivvyas.financeApp",
+      infoPlist: {
+        ITSAppUsesNonExemptEncryption: false
+      }
+    },
+    android: {
+      adaptiveIcon: {
+        foregroundImage: "./assets/images/logo.png",
+        backgroundColor: "#ffffff"
+      },
+      package: "com.shivvyas.financeApp"
+    },
+    web: {
+      bundler: "metro",
+      output: "static",
+      favicon: "./assets/images/favicon.png"
+    },
+    plugins: [
+      "expo-router",
+      [
+        "expo-splash-screen",
+        {
+          image: "./assets/images/logo.png",
+          imageWidth: 200,
+          resizeMode: "contain",
+          backgroundColor: "#ffffff"
+        }
+      ]
+    ],
+    experiments: {
+      typedRoutes: true
+    },
+    extra: {
+      router: {
+        origin: false
+      },
+      eas: {
+        projectId: "d4e49b79-e820-4434-87f8-83a6bb1ca468"
+      },
+      clerkPublishableKey: process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY
+    }
+  }
+};
+
+

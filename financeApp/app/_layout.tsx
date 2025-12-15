@@ -127,10 +127,22 @@ export default function RootLayout() {
     return null;
   }
 
+  // Get Clerk publishable key from environment or Constants
+  const clerkPublishableKey = 
+    process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY || 
+    Constants.expoConfig?.extra?.clerkPublishableKey;
+
+  if (!clerkPublishableKey) {
+    console.error(
+      'Missing Clerk publishable key. Please set EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY in your .env file.\n' +
+      'Get your key at: https://dashboard.clerk.com/last-active?path=api-keys'
+    );
+  }
+
   return (
     <SafeAreaProvider>
       <ClerkProvider
-        publishableKey={process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY!}
+        publishableKey={clerkPublishableKey || ''}
         tokenCache={tokenCache}
       >
         <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
